@@ -73,6 +73,7 @@ group :development do
   gem "graphiql-rails"
   gem "letter_opener"
   gem "annotate"
+  gem "graphiql-rails"
 end
 
 group :test do
