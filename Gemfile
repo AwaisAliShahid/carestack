@@ -8,7 +8,7 @@ gem "bootsnap", require: false
 gem "dotenv-rails", groups: %i[development test]
 
 # Database & Persistence
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.6"
 gem "ulid", "~> 1.2.0"
 gem "discard", "~> 1.2"
 gem "will_paginate", "~> 4.0"
