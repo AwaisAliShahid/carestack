@@ -332,12 +332,42 @@ class GeneticVRPSolver
     total_time
   end
 
+  def calculate_total_distance(route)
+    return 0.0 if route[:appointments].empty?
+
+    total_distance = 0.0
+    current_location = route[:home_location]
+
+    route[:appointments].each do |appointment_id|
+      appointment = appointments.find { |a| a.id == appointment_id }
+      appointment_location = appointment_location(appointment)
+
+      # Travel distance to appointment
+      travel_distance = get_travel_distance(current_location, appointment_location)
+      total_distance += travel_distance
+
+      current_location = appointment_location
+    end
+
+    # Return home
+    total_distance += get_travel_distance(current_location, route[:home_location])
+    total_distance
+  end
+
   def get_travel_time(from_location, to_location)
     key = "#{from_location[:id]}:#{to_location[:id]}"
     distance_data = distance_matrix[key]
     return 1800 unless distance_data # Default 30 min if no data
 
     distance_data[:duration_seconds] || 1800
+  end
+
+  def get_travel_distance(from_location, to_location)
+    key = "#{from_location[:id]}:#{to_location[:id]}"
+    distance_data = distance_matrix[key]
+    return 10000 unless distance_data # Default 10km if no data
+
+    distance_data[:distance_meters] || 10000
   end
 
   def constraint_penalty(route)
@@ -349,4 +379,183 @@ class GeneticVRPSolver
     end
 
     # Max working hours constraint
-    total_work_time = calculate_total_travel_
+    total_work_time = calculate_total_travel_time(route)
+    max_work_seconds = 8 * 3600 # 8 hours
+    if total_work_time > max_work_seconds
+      penalty += (total_work_time - max_work_seconds) * 2 # Double penalty for overtime
+    end
+
+    penalty
+  end
+
+  def calculate_workload_balance_penalty(solution)
+    work_times = solution.map { |route| calculate_total_travel_time(route) }
+    return 0.0 if work_times.empty?
+
+    avg_time = work_times.sum / work_times.length.to_f
+    variance = work_times.sum { |time| (time - avg_time) ** 2 } / work_times.length.to_f
+    
+    Math.sqrt(variance) # Standard deviation as penalty
+  end
+
+  def calculate_route_distance(appointment_ids)
+    return 0.0 if appointment_ids.empty?
+
+    total_distance = 0.0
+    
+    appointment_ids.each_cons(2) do |from_id, to_id|
+      from_appointment = appointments.find { |a| a.id == from_id }
+      to_appointment = appointments.find { |a| a.id == to_id }
+      
+      from_location = appointment_location(from_appointment)
+      to_location = appointment_location(to_appointment)
+      
+      total_distance += get_travel_distance(from_location, to_location)
+    end
+
+    total_distance
+  end
+
+  def convert_solution_to_routes(solution)
+    return [] unless solution
+
+    routes = []
+
+    solution.each do |route_data|
+      next if route_data[:appointments].empty?
+
+      staff = staff_members.find { |s| s.id == route_data[:staff_id] }
+      route_appointments = route_data[:appointments].map do |appointment_id|
+        appointments.find { |a| a.id == appointment_id }
+      end
+
+      total_distance = calculate_total_distance(route_data)
+      total_time = calculate_total_travel_time(route_data)
+
+      routes << {
+        staff: staff,
+        appointments: route_appointments,
+        total_distance_meters: total_distance,
+        total_duration_seconds: total_time,
+        stops: build_route_stops(route_appointments)
+      }
+    end
+
+    routes
+  end
+
+  def build_route_stops(route_appointments)
+    stops = []
+    current_time = Time.current.beginning_of_day + 8.hours
+
+    route_appointments.each_with_index do |appointment, index|
+      service_duration = appointment.service_type.duration_minutes.minutes
+
+      stops << {
+        appointment_id: appointment.id,
+        estimated_arrival: current_time,
+        estimated_departure: current_time + service_duration,
+        stop_order: index
+      }
+
+      current_time += service_duration
+      
+      # Add travel time to next appointment if not last
+      if index < route_appointments.length - 1
+        next_appointment = route_appointments[index + 1]
+        travel_time = get_travel_time(
+          appointment_location(appointment),
+          appointment_location(next_appointment)
+        )
+        current_time += travel_time.seconds
+      end
+    end
+
+    stops
+  end
+
+  # Helper methods
+  def staff_home_location(staff)
+    {
+      id: "staff_home_#{staff.id}",
+      lat: staff.home_latitude || 53.5461, # Default Edmonton coordinates
+      lng: staff.home_longitude || -113.4938
+    }
+  end
+
+  def appointment_location(appointment)
+    {
+      id: appointment.id,
+      lat: appointment.customer.latitude,
+      lng: appointment.customer.longitude
+    }
+  end
+
+  def can_assign_appointment?(staff_id, appointment)
+    # Basic assignment rules - can be expanded
+    appointment.staff_id == staff_id
+  end
+
+  def max_appointments_per_route
+    8 # Maximum appointments per staff per day
+  end
+
+  def insertion_cost(route, appointment_id, position)
+    # Calculate cost of inserting appointment at given position
+    return 0.0 if route[:appointments].empty?
+
+    appointment = appointments.find { |a| a.id == appointment_id }
+    appointment_loc = appointment_location(appointment)
+
+    if position == 0
+      # Insert at beginning
+      home_loc = route[:home_location]
+      next_appointment = appointments.find { |a| a.id == route[:appointments][0] }
+      next_loc = appointment_location(next_appointment)
+
+      # Cost = home -> new + new -> next - home -> next
+      new_cost = get_travel_time(home_loc, appointment_loc) + 
+                 get_travel_time(appointment_loc, next_loc)
+      old_cost = get_travel_time(home_loc, next_loc)
+      
+      new_cost - old_cost
+    elsif position == route[:appointments].length
+      # Insert at end
+      prev_appointment = appointments.find { |a| a.id == route[:appointments][-1] }
+      prev_loc = appointment_location(prev_appointment)
+      home_loc = route[:home_location]
+
+      # Cost = prev -> new + new -> home - prev -> home
+      new_cost = get_travel_time(prev_loc, appointment_loc) + 
+                 get_travel_time(appointment_loc, home_loc)
+      old_cost = get_travel_time(prev_loc, home_loc)
+      
+      new_cost - old_cost
+    else
+      # Insert in middle
+      prev_appointment = appointments.find { |a| a.id == route[:appointments][position - 1] }
+      next_appointment = appointments.find { |a| a.id == route[:appointments][position] }
+      
+      prev_loc = appointment_location(prev_appointment)
+      next_loc = appointment_location(next_appointment)
+
+      # Cost = prev -> new + new -> next - prev -> next
+      new_cost = get_travel_time(prev_loc, appointment_loc) + 
+                 get_travel_time(appointment_loc, next_loc)
+      old_cost = get_travel_time(prev_loc, next_loc)
+      
+      new_cost - old_cost
+    end
+  end
+
+  def deep_copy_solution(solution)
+    solution.map do |route|
+      {
+        staff_id: route[:staff_id],
+        staff_index: route[:staff_index],
+        appointments: route[:appointments].dup,
+        home_location: route[:home_location].dup
+      }
+    end
+  end
+end
