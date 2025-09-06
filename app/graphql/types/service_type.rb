@@ -20,7 +20,7 @@ module Types
       argument :hourly_rate, Float, required: false, default_value: 50.0
     end
     field :requires_multiple_staff, Boolean, null: false
-    field :compliance_requirements, [String], null: false
+    field :compliance_requirements, [ String ], null: false
 
     # Delegated methods
     def estimated_cost(hourly_rate:)

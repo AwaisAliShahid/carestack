@@ -20,8 +20,8 @@ class Account < ApplicationRecord
 
   # Scopes
   scope :for_vertical, ->(vertical_slug) { joins(:vertical).where(verticals: { slug: vertical_slug }) }
-  scope :cleaning_services, -> { for_vertical('cleaning') }
-  scope :elderly_care_services, -> { for_vertical('elderly_care') }
+  scope :cleaning_services, -> { for_vertical("cleaning") }
+  scope :elderly_care_services, -> { for_vertical("elderly_care") }
 
   # Instance methods
   def display_name_with_vertical
@@ -37,12 +37,12 @@ class Account < ApplicationRecord
   end
 
   def active_appointments
-    appointments.where(status: ['scheduled', 'in_progress'])
+    appointments.where(status: [ "scheduled", "in_progress" ])
   end
 
   def completed_appointments_this_month
     appointments.where(
-      status: 'completed',
+      status: "completed",
       scheduled_at: 1.month.ago.beginning_of_month..Time.current
     )
   end
@@ -64,7 +64,7 @@ class Account < ApplicationRecord
 
   def compliance_status
     return :not_required unless requires_compliance_tracking?
-    
+
     if elderly_care?
       {
         background_checks: staff.where(background_check_passed: true).count,
@@ -82,7 +82,7 @@ class Account < ApplicationRecord
 
   def calculate_compliance_rate
     return 0.0 if staff.count == 0
-    
+
     (staff.where(background_check_passed: true).count.to_f / staff.count * 100).round(2)
   end
 end

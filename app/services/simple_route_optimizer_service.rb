@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SimpleRouteOptimizerService
-  def initialize(account_id:, date:, optimization_type: 'minimize_travel_time', staff_ids: [])
+  def initialize(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: [])
     @account = Account.find(account_id)
     @date = date
     @optimization_type = optimization_type
@@ -12,15 +12,15 @@ class SimpleRouteOptimizerService
   end
 
   def optimize!
-    return failed_result('No appointments to optimize') if @appointments.empty?
-    return failed_result('No available staff') if @staff_members.empty?
+    return failed_result("No appointments to optimize") if @appointments.empty?
+    return failed_result("No available staff") if @staff_members.empty?
 
     begin
       # Create optimization job record
       job = OptimizationJob.create!(
         account: @account,
         requested_date: @date,
-        status: 'processing',
+        status: "processing",
         parameters: {
           optimization_type: @optimization_type,
           appointment_count: @appointments.count,
@@ -31,7 +31,7 @@ class SimpleRouteOptimizerService
 
       # Build location data
       locations = build_location_data
-      
+
       # Get distance matrix
       distance_matrix = @maps_service.distance_matrix(locations)
 
@@ -46,7 +46,7 @@ class SimpleRouteOptimizerService
 
       # Update job as completed
       job.update!(
-        status: 'completed',
+        status: "completed",
         processing_completed_at: Time.current,
         result: {
           routes_created: saved_routes.count,
@@ -66,7 +66,7 @@ class SimpleRouteOptimizerService
 
     rescue StandardError => e
       Rails.logger.error "Route optimization failed: #{e.message}"
-      job&.update!(status: 'failed', result: { error: e.message })
+      job&.update!(status: "failed", result: { error: e.message })
       failed_result(e.message)
     end
   end
@@ -76,7 +76,7 @@ class SimpleRouteOptimizerService
   def load_appointments
     scope = @account.appointments
                    .where(scheduled_at: @date.beginning_of_day..@date.end_of_day)
-                   .where(status: ['scheduled', 'confirmed'])
+                   .where(status: [ "scheduled", "confirmed" ])
                    .includes(:customer, :service_type, :staff)
 
     scope = scope.where(staff_id: @staff_ids) if @staff_ids.present?
@@ -96,7 +96,7 @@ class SimpleRouteOptimizerService
     @appointments.each do |appointment|
       locations << {
         id: appointment.id,
-        type: 'appointment',
+        type: "appointment",
         lat: appointment.customer.latitude,
         lng: appointment.customer.longitude,
         staff_id: appointment.staff_id,
@@ -109,7 +109,7 @@ class SimpleRouteOptimizerService
     @staff_members.each do |staff|
       locations << {
         id: "staff_home_#{staff.id}",
-        type: 'staff_home',
+        type: "staff_home",
         lat: staff.home_latitude,
         lng: staff.home_longitude,
         staff_id: staff.id,
@@ -154,7 +154,7 @@ class SimpleRouteOptimizerService
       unvisited.each do |appointment|
         key = "#{current_location_id}:#{appointment.id}"
         distance_data = distance_matrix[key]
-        
+
         if distance_data && distance_data[:duration_seconds] < shortest_distance
           shortest_distance = distance_data[:duration_seconds]
           nearest_appointment = appointment
@@ -165,7 +165,7 @@ class SimpleRouteOptimizerService
         # Add travel time
         key = "#{current_location_id}:#{nearest_appointment.id}"
         travel_data = distance_matrix[key]
-        
+
         if travel_data
           total_distance += travel_data[:distance_meters]
           total_time += travel_data[:duration_seconds]
@@ -175,7 +175,7 @@ class SimpleRouteOptimizerService
         # Add service time
         service_duration = nearest_appointment.service_type.duration_minutes * 60
         total_time += service_duration
-        
+
         route_appointments << {
           appointment: nearest_appointment,
           estimated_arrival: current_time,
@@ -217,7 +217,7 @@ class SimpleRouteOptimizerService
       route = Route.create!(
         account: @account,
         scheduled_date: @date,
-        status: 'optimized',
+        status: "optimized",
         total_distance_meters: route_data[:total_distance_meters],
         total_duration_seconds: route_data[:total_duration_seconds]
       )
@@ -247,8 +247,8 @@ class SimpleRouteOptimizerService
     # Estimate baseline (random order) vs optimized
     baseline_time = estimate_baseline_time
     optimized_time = routes.sum(&:total_duration_seconds)
-    
-    time_saved_hours = [(baseline_time - optimized_time) / 3600.0, 0].max
+
+    time_saved_hours = [ (baseline_time - optimized_time) / 3600.0, 0 ].max
     cost_per_hour = 25.0
     cost_savings = time_saved_hours * cost_per_hour
     efficiency_improvement = baseline_time > 0 ? (time_saved_hours / (baseline_time / 3600.0)) * 100 : 0

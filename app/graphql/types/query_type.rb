@@ -15,8 +15,8 @@ module Types
       context.schema.object_from_id(id, context)
     end
 
-    field :nodes, [Types::NodeType, null: true], null: true, description: "Fetches a list of objects given a list of IDs." do
-      argument :ids, [GraphQL::Types::ID], required: true, description: "IDs of the objects."
+    field :nodes, [ Types::NodeType, null: true ], null: true, description: "Fetches a list of objects given a list of IDs." do
+      argument :ids, [ GraphQL::Types::ID ], required: true, description: "IDs of the objects."
     end
 
     def nodes(ids:)
@@ -24,19 +24,19 @@ module Types
     end
 
     # Our custom fields
-    field :verticals, [Types::VerticalType], null: false, description: "Get all available verticals"
+    field :verticals, [ Types::VerticalType ], null: false, description: "Get all available verticals"
     field :vertical, Types::VerticalType, null: true, description: "Get a specific vertical" do
       argument :id, GraphQL::Types::ID, required: false
       argument :slug, String, required: false
     end
 
-    field :accounts, [Types::AccountType], null: false, description: "Get all accounts"
+    field :accounts, [ Types::AccountType ], null: false, description: "Get all accounts"
     field :account, Types::AccountType, null: true, description: "Get a specific account" do
       argument :id, GraphQL::Types::ID, required: true
     end
 
-    field :service_types, [Types::ServiceType], null: false, description: "Get all service types"
-    field :service_types_for_vertical, [Types::ServiceType], null: false, description: "Get service types for a specific vertical" do
+    field :service_types, [ Types::ServiceType ], null: false, description: "Get all service types"
+    field :service_types_for_vertical, [ Types::ServiceType ], null: false, description: "Get service types for a specific vertical" do
       argument :vertical_id, GraphQL::Types::ID, required: true
     end
 

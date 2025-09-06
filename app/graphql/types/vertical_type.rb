@@ -12,8 +12,8 @@ module Types
     field :updated_at, GraphQL::Types::ISO8601DateTime, null: false
 
     # Associations
-    field :accounts, [Types::AccountType], null: false
-    field :service_types, [Types::ServiceType], null: false
+    field :accounts, [ Types::AccountType ], null: false
+    field :service_types, [ Types::ServiceType ], null: false
 
     # Business logic fields
     field :is_cleaning, Boolean, null: false

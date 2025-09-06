@@ -11,8 +11,8 @@ module Types
 
     # Associations
     field :vertical, Types::VerticalType, null: false
-    field :customers, [Types::CustomerType], null: false
-    field :staff, [Types::StaffType], null: false
+    field :customers, [ Types::CustomerType ], null: false
+    field :staff, [ Types::StaffType ], null: false
 
     # Computed fields
     field :display_name_with_vertical, String, null: false

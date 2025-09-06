@@ -17,30 +17,30 @@ class MockGoogleMapsService
       { lat: 53.5586, lng: -113.4086, formatted_address: "East Edmonton, AB, Canada" }
     else
       # Random Edmonton area coordinates
-      { 
-        lat: 53.5 + rand(0.2), 
-        lng: -113.5 + rand(0.2), 
-        formatted_address: "#{address}, Edmonton, AB, Canada" 
+      {
+        lat: 53.5 + rand(0.2),
+        lng: -113.5 + rand(0.2),
+        formatted_address: "#{address}, Edmonton, AB, Canada"
       }
     end
   end
 
   def distance_matrix(locations)
     distance_data = {}
-    
+
     locations.each do |from_location|
       locations.each do |to_location|
         next if from_location[:id] == to_location[:id]
-        
+
         # Calculate approximate distance using Haversine formula
         distance_meters = haversine_distance(
           from_location[:lat], from_location[:lng],
           to_location[:lat], to_location[:lng]
         )
-        
+
         # Estimate driving time (assuming 40 km/h average in city)
         duration_seconds = (distance_meters / 1000.0 / 40.0 * 3600).to_i
-        
+
         key = "#{from_location[:id]}:#{to_location[:id]}"
         distance_data[key] = {
           distance_meters: distance_meters.to_i,
@@ -51,7 +51,7 @@ class MockGoogleMapsService
         }
       end
     end
-    
+
     distance_data
   end
 
@@ -60,20 +60,20 @@ class MockGoogleMapsService
   def haversine_distance(lat1, lon1, lat2, lon2)
     # Earth's radius in meters
     r = 6_371_000
-    
+
     # Convert degrees to radians
     lat1_rad = lat1 * Math::PI / 180
     lat2_rad = lat2 * Math::PI / 180
     delta_lat = (lat2 - lat1) * Math::PI / 180
     delta_lon = (lon2 - lon1) * Math::PI / 180
-    
+
     # Haversine formula
     a = Math.sin(delta_lat/2) * Math.sin(delta_lat/2) +
         Math.cos(lat1_rad) * Math.cos(lat2_rad) *
         Math.sin(delta_lon/2) * Math.sin(delta_lon/2)
-    
+
     c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-    
+
     r * c
   end
 end

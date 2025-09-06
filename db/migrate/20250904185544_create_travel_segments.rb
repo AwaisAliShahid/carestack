@@ -2,7 +2,7 @@ class CreateTravelSegments < ActiveRecord::Migration[8.0]
   def change
     create_table :travel_segments do |t|
       t.integer :from_appointment_id
-      t.integer :to_appointment_id  
+      t.integer :to_appointment_id
       t.integer :distance_meters
       t.integer :duration_seconds
       t.decimal :traffic_factor, precision: 3, scale: 2

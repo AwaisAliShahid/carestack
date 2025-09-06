@@ -29,11 +29,11 @@ class GeneticVRPSolver
     max_iterations.times do |generation|
       # Evaluate fitness for all solutions
       fitness_scores = population.map { |solution| calculate_fitness(solution) }
-      
+
       # Track best solution
       current_best_index = fitness_scores.each_with_index.min_by { |fitness, _| fitness }[1]
       current_best_fitness = fitness_scores[current_best_index]
-      
+
       if current_best_fitness < best_fitness
         best_fitness = current_best_fitness
         best_solution = population[current_best_index].deep_dup
@@ -115,7 +115,7 @@ class GeneticVRPSolver
     end
 
     unassigned = appointments.map(&:id)
-    
+
     while unassigned.any?
       best_insertion = nil
       best_cost = Float::INFINITY
@@ -210,7 +210,7 @@ class GeneticVRPSolver
       end
     end
 
-    [offspring1, offspring2]
+    [ offspring1, offspring2 ]
   end
 
   def mutate!(solution)
@@ -231,7 +231,7 @@ class GeneticVRPSolver
 
       appointment_id = from_route[:appointments].delete_at(rand(from_route[:appointments].length))
       appointment = appointments.find { |a| a.id == appointment_id }
-      
+
       if can_assign_appointment?(to_route[:staff_id], appointment)
         to_route[:appointments] << appointment_id
       else
@@ -289,15 +289,15 @@ class GeneticVRPSolver
       next if route[:appointments].empty?
 
       route_cost = case objective
-                   when :minimize_time
+      when :minimize_time
                      calculate_total_travel_time(route)
-                   when :minimize_distance
+      when :minimize_distance
                      calculate_total_distance(route)
-                   when :balance_workload
+      when :balance_workload
                      calculate_workload_balance_penalty(solution)
-                   else
+      else
                      calculate_total_travel_time(route)
-                   end
+      end
 
       # Add constraint violations as penalties
       route_cost += constraint_penalty(route)
@@ -394,7 +394,7 @@ class GeneticVRPSolver
 
     avg_time = work_times.sum / work_times.length.to_f
     variance = work_times.sum { |time| (time - avg_time) ** 2 } / work_times.length.to_f
-    
+
     Math.sqrt(variance) # Standard deviation as penalty
   end
 
@@ -402,14 +402,14 @@ class GeneticVRPSolver
     return 0.0 if appointment_ids.empty?
 
     total_distance = 0.0
-    
+
     appointment_ids.each_cons(2) do |from_id, to_id|
       from_appointment = appointments.find { |a| a.id == from_id }
       to_appointment = appointments.find { |a| a.id == to_id }
-      
+
       from_location = appointment_location(from_appointment)
       to_location = appointment_location(to_appointment)
-      
+
       total_distance += get_travel_distance(from_location, to_location)
     end
 
@@ -459,7 +459,7 @@ class GeneticVRPSolver
       }
 
       current_time += service_duration
-      
+
       # Add travel time to next appointment if not last
       if index < route_appointments.length - 1
         next_appointment = route_appointments[index + 1]
@@ -514,10 +514,10 @@ class GeneticVRPSolver
       next_loc = appointment_location(next_appointment)
 
       # Cost = home -> new + new -> next - home -> next
-      new_cost = get_travel_time(home_loc, appointment_loc) + 
+      new_cost = get_travel_time(home_loc, appointment_loc) +
                  get_travel_time(appointment_loc, next_loc)
       old_cost = get_travel_time(home_loc, next_loc)
-      
+
       new_cost - old_cost
     elsif position == route[:appointments].length
       # Insert at end
@@ -526,24 +526,24 @@ class GeneticVRPSolver
       home_loc = route[:home_location]
 
       # Cost = prev -> new + new -> home - prev -> home
-      new_cost = get_travel_time(prev_loc, appointment_loc) + 
+      new_cost = get_travel_time(prev_loc, appointment_loc) +
                  get_travel_time(appointment_loc, home_loc)
       old_cost = get_travel_time(prev_loc, home_loc)
-      
+
       new_cost - old_cost
     else
       # Insert in middle
       prev_appointment = appointments.find { |a| a.id == route[:appointments][position - 1] }
       next_appointment = appointments.find { |a| a.id == route[:appointments][position] }
-      
+
       prev_loc = appointment_location(prev_appointment)
       next_loc = appointment_location(next_appointment)
 
       # Cost = prev -> new + new -> next - prev -> next
-      new_cost = get_travel_time(prev_loc, appointment_loc) + 
+      new_cost = get_travel_time(prev_loc, appointment_loc) +
                  get_travel_time(appointment_loc, next_loc)
       old_cost = get_travel_time(prev_loc, next_loc)
-      
+
       new_cost - old_cost
     end
   end

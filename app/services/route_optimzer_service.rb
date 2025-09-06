@@ -6,7 +6,7 @@ class RouteOptimizerService
 
   attribute :account_id, :integer
   attribute :date, :date
-  attribute :optimization_type, :string, default: 'minimize_travel_time'
+  attribute :optimization_type, :string, default: "minimize_travel_time"
   attribute :max_processing_time_seconds, :integer, default: 30
   attribute :staff_ids, :array, default: []
 
@@ -33,7 +33,7 @@ class RouteOptimizerService
       optimization_type: optimization_type,
       staff_ids: staff_ids
     )
-    
+
     simple_optimizer.optimize!
   end
 
@@ -42,7 +42,7 @@ class RouteOptimizerService
   def load_appointments
     scope = @account.appointments
                    .where(scheduled_at: date.beginning_of_day..date.end_of_day)
-                   .where(status: ['scheduled', 'confirmed'])
+                   .where(status: [ "scheduled", "confirmed" ])
                    .includes(:customer, :service_type, :staff)
 
     scope = scope.where(staff_id: staff_ids) if staff_ids.present?
@@ -59,7 +59,7 @@ class RouteOptimizerService
     OptimizationJob.create!(
       account: @account,
       requested_date: date,
-      status: 'pending',
+      status: "pending",
       parameters: {
         optimization_type: optimization_type,
         appointment_count: @appointments.count,
@@ -87,15 +87,15 @@ class RouteOptimizerService
   end
 
   def calculate_distance_matrix
-    locations = @appointments.map { |apt| 
-      { 
-        id: apt.id, 
-        lat: apt.customer.latitude, 
+    locations = @appointments.map { |apt|
+      {
+        id: apt.id,
+        lat: apt.customer.latitude,
         lng: apt.customer.longitude,
         staff_id: apt.staff_id,
         duration_minutes: apt.service_type.duration_minutes,
         revenue: apt.service_type.estimated_cost(hourly_rate_for_staff(apt.staff))
-      } 
+      }
     }
 
     # Add staff home locations as starting points
@@ -164,7 +164,7 @@ class RouteOptimizerService
       route = Route.create!(
         account: @account,
         scheduled_date: date,
-        status: 'optimized',
+        status: "optimized",
         total_distance_meters: route_data[:total_distance],
         total_duration_seconds: route_data[:total_duration]
       )
@@ -200,10 +200,10 @@ class RouteOptimizerService
     # Compare against baseline random assignment
     baseline_travel_time = estimate_baseline_travel_time
     optimized_travel_time = routes.sum(&:total_duration_seconds)
-    
+
     time_saved_hours = (baseline_travel_time - optimized_travel_time) / 3600.0
     cost_per_hour = 25.0 # Average staff cost per hour
-    
+
     {
       time_saved_hours: time_saved_hours.round(2),
       cost_savings: (time_saved_hours * cost_per_hour).round(2),
@@ -236,7 +236,7 @@ class RouteOptimizerService
     @optimization_job.update!(
       status: status,
       result: result_data,
-      processing_completed_at: (status.in?(['completed', 'failed']) ? Time.current : nil)
+      processing_completed_at: (status.in?([ "completed", "failed" ]) ? Time.current : nil)
     )
   end
 
@@ -263,7 +263,7 @@ class RouteOptimizerService
   end
 
   def calculate_wage_rates
-    @staff_members.map { |staff| [staff.id, hourly_rate_for_staff(staff)] }.to_h
+    @staff_members.map { |staff| [ staff.id, hourly_rate_for_staff(staff) ] }.to_h
   end
 
   def route_staff_assignment

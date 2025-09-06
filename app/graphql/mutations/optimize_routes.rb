@@ -6,16 +6,16 @@ module Mutations
 
     argument :account_id, ID, required: true
     argument :date, GraphQL::Types::ISO8601Date, required: true
-    argument :optimization_type, String, required: false, default_value: 'minimize_travel_time'
-    argument :staff_ids, [ID], required: false
+    argument :optimization_type, String, required: false, default_value: "minimize_travel_time"
+    argument :staff_ids, [ ID ], required: false
     argument :force_reoptimization, Boolean, required: false, default_value: false
 
     field :optimization_job, Types::OptimizationJobType, null: true
-    field :routes, [Types::RouteType], null: true  
+    field :routes, [ Types::RouteType ], null: true
     field :estimated_savings, Types::OptimizationSavingsType, null: true
-    field :errors, [String], null: false
+    field :errors, [ String ], null: false
 
-    def resolve(account_id:, date:, optimization_type: 'minimize_travel_time', staff_ids: nil, force_reoptimization: false)
+    def resolve(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: nil, force_reoptimization: false)
       begin
         account = Account.find(account_id)
 
@@ -23,11 +23,11 @@ module Mutations
         existing_job = OptimizationJob.where(
           account: account,
           requested_date: date,
-          status: 'completed'
+          status: "completed"
         ).order(created_at: :desc).first
 
         if existing_job && !force_reoptimization
-          routes = Route.where(account: account, scheduled_date: date, status: 'optimized')
+          routes = Route.where(account: account, scheduled_date: date, status: "optimized")
           return {
             optimization_job: existing_job,
             routes: routes,
@@ -43,14 +43,14 @@ module Mutations
             optimization_job: nil,
             routes: [],
             estimated_savings: nil,
-            errors: ["Invalid optimization type. Must be one of: #{valid_types.join(', ')}"]
+            errors: [ "Invalid optimization type. Must be one of: #{valid_types.join(', ')}" ]
           }
         end
 
         # Check if there are appointments to optimize
         appointments = account.appointments
                              .where(scheduled_at: date.beginning_of_day..date.end_of_day)
-                             .where(status: ['scheduled', 'confirmed'])
+                             .where(status: [ "scheduled", "confirmed" ])
 
         if staff_ids.present?
           appointments = appointments.where(staff_id: staff_ids)
@@ -61,7 +61,7 @@ module Mutations
             optimization_job: nil,
             routes: [],
             estimated_savings: nil,
-            errors: ["No appointments found for optimization on #{date}"]
+            errors: [ "No appointments found for optimization on #{date}" ]
           }
         end
 
@@ -87,7 +87,7 @@ module Mutations
             optimization_job: result[:optimization_job],
             routes: [],
             estimated_savings: nil,
-            errors: [result[:error]]
+            errors: [ result[:error] ]
           }
         end
 
@@ -96,17 +96,17 @@ module Mutations
           optimization_job: nil,
           routes: [],
           estimated_savings: nil,
-          errors: ["Record not found: #{e.message}"]
+          errors: [ "Record not found: #{e.message}" ]
         }
       rescue StandardError => e
         Rails.logger.error "Route optimization mutation failed: #{e.message}"
         Rails.logger.error e.backtrace.join("\n")
-        
+
         {
           optimization_job: nil,
           routes: [],
           estimated_savings: nil,
-          errors: ["Optimization failed: #{e.message}"]
+          errors: [ "Optimization failed: #{e.message}" ]
         }
       end
     end
@@ -117,11 +117,11 @@ module Mutations
       return nil unless job.result
 
       OpenStruct.new(
-        time_saved_hours: job.result['time_saved_hours'],
-        cost_savings: job.result['cost_savings'],
-        efficiency_improvement_percent: job.result['efficiency_improvement'],
-        total_distance_km: job.result.dig('optimization_metrics', 'total_distance_km'),
-        routes_created: job.result['routes_created']
+        time_saved_hours: job.result["time_saved_hours"],
+        cost_savings: job.result["cost_savings"],
+        efficiency_improvement_percent: job.result["efficiency_improvement"],
+        total_distance_km: job.result.dig("optimization_metrics", "total_distance_km"),
+        routes_created: job.result["routes_created"]
       )
     end
 
@@ -129,11 +129,11 @@ module Mutations
       return nil unless metrics
 
       OpenStruct.new(
-        time_saved_hours: metrics['time_saved_hours'],
-        cost_savings: metrics['cost_savings'],
-        efficiency_improvement_percent: metrics['efficiency_improvement'],
-        total_distance_km: metrics['total_distance_km'],
-        routes_created: metrics['routes_created']
+        time_saved_hours: metrics["time_saved_hours"],
+        cost_savings: metrics["cost_savings"],
+        efficiency_improvement_percent: metrics["efficiency_improvement"],
+        total_distance_km: metrics["total_distance_km"],
+        routes_created: metrics["routes_created"]
       )
     end
   end

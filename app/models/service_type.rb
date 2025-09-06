@@ -39,11 +39,11 @@ class ServiceType < ApplicationRecord
 
   def compliance_requirements
     requirements = []
-    
+
     requirements << "Background check required" if requires_background_check?
     requirements << "Minimum #{min_staff_ratio} staff members" if requires_multiple_staff?
     requirements << "Compliance tracking enabled" if requires_compliance_tracking?
-    
+
     requirements
   end
 
@@ -76,29 +76,29 @@ class ServiceType < ApplicationRecord
 
   def self.create_elderly_care_defaults(vertical)
     [
-      { 
-        name: "Companion Care", 
-        duration_minutes: 240, 
-        requires_background_check: true, 
-        min_staff_ratio: 1.0 
+      {
+        name: "Companion Care",
+        duration_minutes: 240,
+        requires_background_check: true,
+        min_staff_ratio: 1.0
       },
-      { 
-        name: "Personal Care Assistance", 
-        duration_minutes: 120, 
-        requires_background_check: true, 
-        min_staff_ratio: 1.0 
+      {
+        name: "Personal Care Assistance",
+        duration_minutes: 120,
+        requires_background_check: true,
+        min_staff_ratio: 1.0
       },
-      { 
-        name: "24-Hour Care", 
-        duration_minutes: 1440, 
-        requires_background_check: true, 
-        min_staff_ratio: 2.0 
+      {
+        name: "24-Hour Care",
+        duration_minutes: 1440,
+        requires_background_check: true,
+        min_staff_ratio: 2.0
       },
-      { 
-        name: "Medical Appointment Transport", 
-        duration_minutes: 180, 
-        requires_background_check: true, 
-        min_staff_ratio: 1.0 
+      {
+        name: "Medical Appointment Transport",
+        duration_minutes: 180,
+        requires_background_check: true,
+        min_staff_ratio: 1.0
       }
     ].each do |attrs|
       vertical.service_types.find_or_create_by(name: attrs[:name]) do |service_type|

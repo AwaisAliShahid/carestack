@@ -11,8 +11,8 @@ module Types
 
     # Associations
     field :account, Types::AccountType, null: false
-    field :route_stops, [Types::RouteStopType], null: false
-    field :appointments, [Types::AppointmentType], null: false
+    field :route_stops, [ Types::RouteStopType ], null: false
+    field :appointments, [ Types::AppointmentType ], null: false
 
     # Computed fields
     field :total_distance_km, Float, null: false

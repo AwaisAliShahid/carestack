@@ -9,37 +9,37 @@ class OptimizationJob < ApplicationRecord
 
   def processing_time_seconds
     return nil unless processing_started_at && processing_completed_at
-    
+
     processing_completed_at - processing_started_at
   end
 
   def success?
-    status == 'completed'
+    status == "completed"
   end
 
   def failed?
-    status == 'failed'
+    status == "failed"
   end
 
   def processing?
-    status == 'processing'
+    status == "processing"
   end
 
   def time_savings
-    return nil unless success? && result&.dig('time_saved_hours')
-    
-    result['time_saved_hours']
+    return nil unless success? && result&.dig("time_saved_hours")
+
+    result["time_saved_hours"]
   end
 
   def cost_savings
-    return nil unless success? && result&.dig('cost_savings')
-    
-    result['cost_savings']
+    return nil unless success? && result&.dig("cost_savings")
+
+    result["cost_savings"]
   end
 
   def routes_created
-    return 0 unless success? && result&.dig('routes_created')
-    
-    result['routes_created']
+    return 0 unless success? && result&.dig("routes_created")
+
+    result["routes_created"]
   end
 end

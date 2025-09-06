@@ -14,7 +14,7 @@ module Mutations
 
     # Return type
     field :appointment, Types::AppointmentType, null: true
-    field :errors, [String], null: false
+    field :errors, [ String ], null: false
 
     def resolve(account_id:, customer_id:, service_type_id:, staff_id:, scheduled_at:, notes: nil)
       appointment = nil
@@ -29,7 +29,7 @@ module Mutations
 
         # Validate business rules based on vertical
         validation_errors = validate_appointment_rules(account, service_type, staff)
-        
+
         if validation_errors.any?
           return {
             appointment: nil,
@@ -45,7 +45,7 @@ module Mutations
           staff: staff,
           scheduled_at: scheduled_at,
           duration_minutes: service_type.duration_minutes,
-          status: 'scheduled',
+          status: "scheduled",
           notes: notes
         )
 
@@ -57,7 +57,7 @@ module Mutations
       rescue ActiveRecord::RecordNotFound => e
         {
           appointment: nil,
-          errors: ["Record not found: #{e.message}"]
+          errors: [ "Record not found: #{e.message}" ]
         }
       rescue ActiveRecord::RecordInvalid => e
         {
@@ -67,7 +67,7 @@ module Mutations
       rescue StandardError => e
         {
           appointment: nil,
-          errors: ["An error occurred: #{e.message}"]
+          errors: [ "An error occurred: #{e.message}" ]
         }
       end
     end
