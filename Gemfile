@@ -18,7 +18,7 @@ gem "graphql", "~> 2.0"
 gem "jbuilder"
 
 # Background Jobs
-gem "sidekiq", "~> 7.0"
+gem "sidekiq", "~> 8.0"
 gem "redis", "> 5"
 
 # Authentication & Authorization
