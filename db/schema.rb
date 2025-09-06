@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_31_213446) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_04_185646) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -50,6 +50,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_213446) do
     t.text "address"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "latitude"
+    t.decimal "longitude"
+    t.string "geocoded_address"
     t.index ["account_id"], name: "index_customers_on_account_id"
   end
 
@@ -67,6 +70,44 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_213446) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
+  end
+
+  create_table "optimization_jobs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.date "requested_date"
+    t.string "status"
+    t.json "parameters"
+    t.json "result"
+    t.datetime "processing_started_at"
+    t.datetime "processing_completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_optimization_jobs_on_account_id"
+  end
+
+  create_table "route_stops", force: :cascade do |t|
+    t.bigint "route_id", null: false
+    t.bigint "appointment_id", null: false
+    t.integer "stop_order"
+    t.datetime "estimated_arrival"
+    t.datetime "estimated_departure"
+    t.datetime "actual_arrival"
+    t.datetime "actual_departure"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["appointment_id"], name: "index_route_stops_on_appointment_id"
+    t.index ["route_id"], name: "index_route_stops_on_route_id"
+  end
+
+  create_table "routes", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.date "scheduled_date"
+    t.string "status"
+    t.integer "total_distance_meters"
+    t.integer "total_duration_seconds"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_routes_on_account_id"
   end
 
   create_table "service_types", force: :cascade do |t|
@@ -89,7 +130,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_213446) do
     t.boolean "background_check_passed"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "home_latitude"
+    t.decimal "home_longitude"
+    t.integer "max_travel_radius_km"
     t.index ["account_id"], name: "index_staffs_on_account_id"
+  end
+
+  create_table "travel_segments", force: :cascade do |t|
+    t.integer "from_appointment_id"
+    t.integer "to_appointment_id"
+    t.integer "distance_meters"
+    t.integer "duration_seconds"
+    t.decimal "traffic_factor", precision: 3, scale: 2
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["from_appointment_id"], name: "index_travel_segments_on_from_appointment_id"
+    t.index ["to_appointment_id"], name: "index_travel_segments_on_to_appointment_id"
   end
 
   create_table "verticals", force: :cascade do |t|
@@ -107,6 +163,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_213446) do
   add_foreign_key "appointments", "service_types"
   add_foreign_key "appointments", "staffs"
   add_foreign_key "customers", "accounts"
+  add_foreign_key "optimization_jobs", "accounts"
+  add_foreign_key "route_stops", "appointments"
+  add_foreign_key "route_stops", "routes"
+  add_foreign_key "routes", "accounts"
   add_foreign_key "service_types", "verticals"
   add_foreign_key "staffs", "accounts"
+  add_foreign_key "travel_segments", "appointments", column: "from_appointment_id"
+  add_foreign_key "travel_segments", "appointments", column: "to_appointment_id"
 end
