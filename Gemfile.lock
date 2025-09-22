@@ -175,7 +175,7 @@ GEM
       activesupport (>= 6.1)
     graphiql-rails (1.10.5)
       railties
-    graphql (2.5.11)
+    graphql (2.5.13)
       base64
       fiber-storage
       logger
@@ -486,7 +486,7 @@ DEPENDENCIES
   flipper-active_record
   flipper-ui
   graphiql-rails
-  graphql (~> 2.0)
+  graphql (~> 2.5)
   icalendar (~> 2.4)
   ice_cube
   image_processing (~> 1.8)
