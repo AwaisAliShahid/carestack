@@ -3,7 +3,7 @@ source "https://rubygems.org"
 ruby "3.2.0"
 
 # Rails Core
-gem "rails", "~> 8.0.0"
+gem "rails", "~> 8.0.3"
 gem "bootsnap", require: false
 gem "dotenv-rails", groups: %i[development test]
 
