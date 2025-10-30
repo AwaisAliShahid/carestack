@@ -39,7 +39,7 @@ gem "flipper-active_record"
 gem "flipper-ui"
 
 # Payments (like ZenMaid)
-gem "stripe", "~> 5.55"
+gem "stripe", "~> 17.1"
 gem "stripe_event", "~> 2.3"
 
 # Utils & Helpers
