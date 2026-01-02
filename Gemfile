@@ -14,7 +14,7 @@ gem "discard", "~> 1.2"
 gem "will_paginate", "~> 4.0"
 
 # API & GraphQL
-gem "graphql", "~> 2.0"
+gem "graphql", "~> 2.5"
 gem "jbuilder"
 
 # Background Jobs
