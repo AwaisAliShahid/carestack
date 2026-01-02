@@ -23,7 +23,7 @@ gem "redis", "> 5"
 
 # Authentication & Authorization
 gem "devise", "~> 4.9"
-gem "jwt", "~> 2.7"
+gem "jwt", "~> 3.1"
 
 # Forms & Validation
 gem "reform-rails"

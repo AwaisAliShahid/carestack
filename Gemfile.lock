@@ -208,7 +208,7 @@ GEM
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
     json (2.13.2)
-    jwt (2.10.2)
+    jwt (3.1.2)
       base64
     language_server-protocol (3.17.0.5)
     launchy (3.1.1)
@@ -503,7 +503,7 @@ DEPENDENCIES
   ice_cube
   image_processing (~> 1.8)
   jbuilder
-  jwt (~> 2.7)
+  jwt (~> 3.1)
   letter_opener
   listen
   money-rails
