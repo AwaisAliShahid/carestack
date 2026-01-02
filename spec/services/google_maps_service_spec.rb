@@ -118,12 +118,12 @@ RSpec.describe GoogleMapsService do
             "formatted_address" => "123 Main St, Edmonton, AB T5K 0L4, Canada",
             "place_id" => "ChIJ_reverse123",
             "address_components" => [
-              { "long_name" => "123", "types" => ["street_number"] },
-              { "long_name" => "Main Street", "types" => ["route"] },
-              { "long_name" => "Edmonton", "types" => ["locality"] },
-              { "long_name" => "Alberta", "types" => ["administrative_area_level_1"] },
-              { "long_name" => "Canada", "types" => ["country"] },
-              { "long_name" => "T5K 0L4", "types" => ["postal_code"] }
+              { "long_name" => "123", "types" => [ "street_number" ] },
+              { "long_name" => "Main Street", "types" => [ "route" ] },
+              { "long_name" => "Edmonton", "types" => [ "locality" ] },
+              { "long_name" => "Alberta", "types" => [ "administrative_area_level_1" ] },
+              { "long_name" => "Canada", "types" => [ "country" ] },
+              { "long_name" => "T5K 0L4", "types" => [ "postal_code" ] }
             ]
           }
         ]
@@ -224,7 +224,7 @@ RSpec.describe GoogleMapsService do
     end
 
     it "returns empty hash for single location" do
-      result = service.distance_matrix([locations.first])
+      result = service.distance_matrix([ locations.first ])
       expect(result).to eq({})
     end
 
@@ -256,7 +256,7 @@ RSpec.describe GoogleMapsService do
       end
 
       it "handles NOT_FOUND status with infinity values" do
-        result = service.distance_matrix([locations[0], locations[1]])
+        result = service.distance_matrix([ locations[0], locations[1] ])
 
         key = "1:2"
         expect(result[key][:distance_meters]).to eq(Float::INFINITY)
@@ -270,7 +270,7 @@ RSpec.describe GoogleMapsService do
 
     let(:origin) { { lat: 53.5461, lng: -113.4938 } }
     let(:destination) { { lat: 53.5232, lng: -113.5263 } }
-    let(:waypoints) { [{ lat: 53.4668, lng: -113.5114 }] }
+    let(:waypoints) { [ { lat: 53.4668, lng: -113.5114 } ] }
 
     let(:directions_response) do
       {
@@ -296,7 +296,7 @@ RSpec.describe GoogleMapsService do
                 ]
               }
             ],
-            "waypoint_order" => [0],
+            "waypoint_order" => [ 0 ],
             "overview_polyline" => { "points" => "abc123xyz" }
           }
         ]
@@ -329,7 +329,7 @@ RSpec.describe GoogleMapsService do
     it "supports waypoints" do
       result = service.directions(origin: origin, destination: destination, waypoints: waypoints)
 
-      expect(result[:waypoint_order]).to eq([0])
+      expect(result[:waypoint_order]).to eq([ 0 ])
     end
 
     context "when no route found" do
@@ -360,7 +360,7 @@ RSpec.describe GoogleMapsService do
             status: 200,
             body: {
               "status" => "OK",
-              "rows" => [{ "elements" => [{ "status" => "OK", "duration" => { "value" => 600 }, "duration_in_traffic" => { "value" => 720 } }] }]
+              "rows" => [ { "elements" => [ { "status" => "OK", "duration" => { "value" => 600 }, "duration_in_traffic" => { "value" => 720 } } ] } ]
             }.to_json,
             headers: { "Content-Type" => "application/json" }
           )
@@ -372,7 +372,7 @@ RSpec.describe GoogleMapsService do
             status: 200,
             body: {
               "status" => "OK",
-              "rows" => [{ "elements" => [{ "status" => "OK", "duration" => { "value" => 600 } }] }]
+              "rows" => [ { "elements" => [ { "status" => "OK", "duration" => { "value" => 600 } } ] } ]
             }.to_json,
             headers: { "Content-Type" => "application/json" }
           )

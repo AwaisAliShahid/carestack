@@ -88,7 +88,7 @@ RSpec.describe Vertical, type: :model do
         active = create(:vertical, active: true)
         create(:vertical, :inactive)
 
-        expect(Vertical.active).to eq([active])
+        expect(Vertical.active).to eq([ active ])
       end
     end
   end

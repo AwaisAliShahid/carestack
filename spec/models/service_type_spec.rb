@@ -78,7 +78,7 @@ RSpec.describe ServiceType, type: :model do
         with_check = create(:service_type, requires_background_check: true)
         create(:service_type, requires_background_check: false)
 
-        expect(ServiceType.requiring_background_check).to eq([with_check])
+        expect(ServiceType.requiring_background_check).to eq([ with_check ])
       end
     end
 
@@ -90,7 +90,7 @@ RSpec.describe ServiceType, type: :model do
         cleaning_service = create(:service_type, vertical: cleaning_vertical)
         create(:service_type, vertical: elderly_vertical)
 
-        expect(ServiceType.for_vertical("cleaning")).to eq([cleaning_service])
+        expect(ServiceType.for_vertical("cleaning")).to eq([ cleaning_service ])
       end
     end
   end

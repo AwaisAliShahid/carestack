@@ -23,7 +23,7 @@ RSpec.describe SimpleRouteOptimizerService do
       service = described_class.new(
         account_id: account.id,
         date: Date.current,
-        staff_ids: [staff.id]
+        staff_ids: [ staff.id ]
       )
 
       expect(service).to be_a(SimpleRouteOptimizerService)
@@ -228,7 +228,7 @@ RSpec.describe SimpleRouteOptimizerService do
         service = described_class.new(
           account_id: account.id,
           date: today,
-          staff_ids: [staff1.id]
+          staff_ids: [ staff1.id ]
         )
 
         result = service.optimize!

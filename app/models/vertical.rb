@@ -8,7 +8,7 @@ class Vertical < ApplicationRecord
   # Validations
   validates :name, presence: true
   validates :slug, presence: true, uniqueness: true
-  validates :active, inclusion: { in: [true, false] }
+  validates :active, inclusion: { in: [ true, false ] }
 
   # Scopes
   scope :active, -> { where(active: true) }

@@ -8,7 +8,7 @@ module Mutations
     argument :password, String, required: true
 
     field :auth_payload, Types::AuthPayloadType, null: true
-    field :errors, [String], null: false
+    field :errors, [ String ], null: false
 
     def resolve(email:, password:)
       user = User.find_by(email: email.downcase)
@@ -16,14 +16,14 @@ module Mutations
       if user.nil?
         return {
           auth_payload: nil,
-          errors: ["Invalid email or password"]
+          errors: [ "Invalid email or password" ]
         }
       end
 
       unless user.valid_password?(password)
         return {
           auth_payload: nil,
-          errors: ["Invalid email or password"]
+          errors: [ "Invalid email or password" ]
         }
       end
 

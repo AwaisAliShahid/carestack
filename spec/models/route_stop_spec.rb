@@ -74,7 +74,7 @@ RSpec.describe RouteStop, type: :model do
         stop1 = create(:route_stop, route: route, appointment: apt1, stop_order: 0)
         stop3 = create(:route_stop, route: route, appointment: apt3, stop_order: 2)
 
-        expect(route.route_stops.ordered).to eq([stop1, stop2, stop3])
+        expect(route.route_stops.ordered).to eq([ stop1, stop2, stop3 ])
       end
     end
   end

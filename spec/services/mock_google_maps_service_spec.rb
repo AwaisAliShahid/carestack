@@ -149,8 +149,8 @@ RSpec.describe MockGoogleMapsService do
   describe "Haversine distance calculation" do
     it "calculates correct distance between known points" do
       # Downtown to West Edmonton is approximately 3.5 km
-      downtown = [53.5461, -113.4938]
-      west = [53.5232, -113.5263]
+      downtown = [ 53.5461, -113.4938 ]
+      west = [ 53.5232, -113.5263 ]
 
       locations = [
         { id: 1, lat: downtown[0], lng: downtown[1] },
@@ -181,7 +181,7 @@ RSpec.describe MockGoogleMapsService do
       edmonton = { id: 1, lat: 53.5461, lng: -113.4938 }
       calgary = { id: 2, lat: 51.0447, lng: -114.0719 }
 
-      result = service.distance_matrix([edmonton, calgary])
+      result = service.distance_matrix([ edmonton, calgary ])
       distance_km = result["1:2"][:distance_meters] / 1000.0
 
       # Straight-line distance should be around 270-280 km

@@ -259,7 +259,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
       variables = {
         accountId: account.id.to_s,
         date: today.iso8601,
-        staffIds: [staff1.id.to_s],
+        staffIds: [ staff1.id.to_s ],
         forceReoptimization: true
       }
 

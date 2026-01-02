@@ -12,14 +12,14 @@ module Mutations
     argument :account_id, ID, required: false, description: "Associate user with an existing account"
 
     field :auth_payload, Types::AuthPayloadType, null: true
-    field :errors, [String], null: false
+    field :errors, [ String ], null: false
 
     def resolve(email:, password:, password_confirmation:, first_name:, last_name:, account_id: nil)
       # Check password confirmation
       if password != password_confirmation
         return {
           auth_payload: nil,
-          errors: ["Password confirmation doesn't match"]
+          errors: [ "Password confirmation doesn't match" ]
         }
       end
 
@@ -30,7 +30,7 @@ module Mutations
         unless account
           return {
             auth_payload: nil,
-            errors: ["Account not found"]
+            errors: [ "Account not found" ]
           }
         end
       end

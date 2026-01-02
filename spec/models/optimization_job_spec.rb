@@ -52,7 +52,7 @@ RSpec.describe OptimizationJob, type: :model do
         recent_job = create(:optimization_job, created_at: 3.days.ago)
         create(:optimization_job, created_at: 2.weeks.ago)
 
-        expect(OptimizationJob.recent).to eq([recent_job])
+        expect(OptimizationJob.recent).to eq([ recent_job ])
       end
     end
 
@@ -61,7 +61,7 @@ RSpec.describe OptimizationJob, type: :model do
         today_job = create(:optimization_job, requested_date: Date.current)
         create(:optimization_job, requested_date: Date.current + 1.day)
 
-        expect(OptimizationJob.for_date(Date.current)).to eq([today_job])
+        expect(OptimizationJob.for_date(Date.current)).to eq([ today_job ])
       end
     end
   end

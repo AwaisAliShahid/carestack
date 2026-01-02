@@ -173,7 +173,7 @@ RSpec.describe Appointment, type: :model do
         today_end = Date.current.end_of_day
 
         appointments = account.appointments.where(scheduled_at: today_start..today_end)
-        expect(appointments).to eq([today_appointment])
+        expect(appointments).to eq([ today_appointment ])
       end
     end
   end

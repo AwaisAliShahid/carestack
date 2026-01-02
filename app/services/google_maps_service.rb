@@ -124,7 +124,7 @@ class GoogleMapsService
         interval: 0.5,
         interval_randomness: 0.5,
         backoff_factor: 2,
-        exceptions: [Faraday::TimeoutError, Faraday::ConnectionFailed]
+        exceptions: [ Faraday::TimeoutError, Faraday::ConnectionFailed ]
       }
       faraday.response :json
       faraday.adapter Faraday.default_adapter

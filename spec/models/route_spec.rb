@@ -70,7 +70,7 @@ RSpec.describe Route, type: :model do
         today_route = create(:route, :today)
         create(:route, :tomorrow)
 
-        expect(Route.for_date(Date.current)).to eq([today_route])
+        expect(Route.for_date(Date.current)).to eq([ today_route ])
       end
     end
 

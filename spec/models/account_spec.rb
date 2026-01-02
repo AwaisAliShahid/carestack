@@ -86,7 +86,7 @@ RSpec.describe Account, type: :model do
         cleaning_account = create(:account, vertical: cleaning_vertical)
         create(:account, vertical: elderly_vertical)
 
-        expect(Account.for_vertical("cleaning")).to eq([cleaning_account])
+        expect(Account.for_vertical("cleaning")).to eq([ cleaning_account ])
       end
     end
 
@@ -95,7 +95,7 @@ RSpec.describe Account, type: :model do
         cleaning_account = create(:account, :cleaning_business)
         create(:account, :elderly_care_business)
 
-        expect(Account.cleaning_services).to eq([cleaning_account])
+        expect(Account.cleaning_services).to eq([ cleaning_account ])
       end
     end
 
@@ -104,7 +104,7 @@ RSpec.describe Account, type: :model do
         create(:account, :cleaning_business)
         elderly_account = create(:account, :elderly_care_business)
 
-        expect(Account.elderly_care_services).to eq([elderly_account])
+        expect(Account.elderly_care_services).to eq([ elderly_account ])
       end
     end
   end
@@ -209,7 +209,7 @@ RSpec.describe Account, type: :model do
           create(:appointment, :completed, account: account, scheduled_at: 2.months.ago)
           create(:appointment, :scheduled, account: account)
 
-          expect(account.completed_appointments_this_month).to eq([this_month])
+          expect(account.completed_appointments_this_month).to eq([ this_month ])
         end
       end
     end

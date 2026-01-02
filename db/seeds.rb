@@ -247,7 +247,7 @@ customer_names = [
 ]
 
 customers = {}
-[:cleaning, :elderly_care, :tutoring, :home_repair].each do |vertical_slug|
+[ :cleaning, :elderly_care, :tutoring, :home_repair ].each do |vertical_slug|
   account = accounts[vertical_slug]
   customers[vertical_slug] = []
 
@@ -288,13 +288,13 @@ tomorrow = Date.current + 1.day
 
 appointments_created = 0
 
-[:cleaning, :elderly_care].each do |vertical_slug|
+[ :cleaning, :elderly_care ].each do |vertical_slug|
   account = accounts[vertical_slug]
   account_staff = staff_members[vertical_slug]
   account_customers = customers[vertical_slug]
   account_services = service_types[vertical_slug]
 
-  [today, tomorrow].each do |date|
+  [ today, tomorrow ].each do |date|
     # Create 6-8 appointments per day for route optimization demo
     appointment_count = vertical_slug == :cleaning ? 8 : 6
 
@@ -305,7 +305,7 @@ appointments_created = 0
 
       # Spread appointments throughout the day (8 AM to 5 PM)
       hour = 8 + (i * 1.5).to_i
-      scheduled_time = date.to_time.change(hour: hour, min: [0, 30].sample)
+      scheduled_time = date.to_time.change(hour: hour, min: [ 0, 30 ].sample)
 
       # Skip if appointment already exists
       existing = Appointment.find_by(
@@ -324,7 +324,7 @@ appointments_created = 0
         scheduled_at: scheduled_time,
         duration_minutes: service.duration_minutes,
         status: date == today ? "confirmed" : "scheduled",
-        notes: ["Regular appointment", "First-time customer", "Repeat client", nil].sample
+        notes: [ "Regular appointment", "First-time customer", "Repeat client", nil ].sample
       )
       appointments_created += 1
     end
