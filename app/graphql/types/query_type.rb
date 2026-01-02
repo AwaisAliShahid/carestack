@@ -40,6 +40,20 @@ module Types
       argument :vertical_id, GraphQL::Types::ID, required: true
     end
 
+    field :optimization_job, Types::OptimizationJobType, null: true,
+          description: "Get optimization job status by ID (useful for polling async jobs)" do
+      argument :id, GraphQL::Types::ID, required: true
+    end
+
+    field :optimization_jobs, [ Types::OptimizationJobType ], null: false,
+          description: "Get optimization jobs for an account" do
+      argument :account_id, GraphQL::Types::ID, required: true
+      argument :status, String, required: false
+      argument :limit, Integer, required: false, default_value: 10
+    end
+
+    field :me, Types::UserType, null: true, description: "Get the currently authenticated user"
+
     # Resolver methods
     def verticals
       Vertical.active
@@ -69,6 +83,20 @@ module Types
 
     def service_types_for_vertical(vertical_id:)
       ServiceType.where(vertical_id: vertical_id)
+    end
+
+    def optimization_job(id:)
+      OptimizationJob.find_by(id: id)
+    end
+
+    def optimization_jobs(account_id:, status: nil, limit: 10)
+      scope = OptimizationJob.where(account_id: account_id).order(created_at: :desc).limit(limit)
+      scope = scope.where(status: status) if status.present?
+      scope
+    end
+
+    def me
+      context[:current_user]
     end
   end
 end

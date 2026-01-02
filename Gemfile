@@ -48,6 +48,10 @@ gem "chronic", "~> 0.10"
 gem "sanitize"
 gem "oj"
 
+# HTTP Client
+gem "faraday", "~> 2.7"
+gem "faraday-retry"
+
 # Scheduling & Calendar
 gem "icalendar", "~> 2.4"
 gem "ice_cube"

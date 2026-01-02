@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_04_185646) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_01_192831) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -107,7 +107,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_04_185646) do
     t.integer "total_duration_seconds"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "optimization_job_id"
     t.index ["account_id"], name: "index_routes_on_account_id"
+    t.index ["optimization_job_id"], name: "index_routes_on_optimization_job_id"
   end
 
   create_table "service_types", force: :cascade do |t|
@@ -148,6 +150,28 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_04_185646) do
     t.index ["to_appointment_id"], name: "index_travel_segments_on_to_appointment_id"
   end
 
+  create_table "users", force: :cascade do |t|
+    t.string "email", default: "", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "first_name"
+    t.string "last_name"
+    t.string "role", default: "member"
+    t.bigint "account_id"
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.integer "sign_in_count", default: 0, null: false
+    t.datetime "current_sign_in_at"
+    t.datetime "last_sign_in_at"
+    t.string "current_sign_in_ip"
+    t.string "last_sign_in_ip"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_users_on_account_id"
+    t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+  end
+
   create_table "verticals", force: :cascade do |t|
     t.string "name"
     t.string "slug"
@@ -167,8 +191,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_04_185646) do
   add_foreign_key "route_stops", "appointments"
   add_foreign_key "route_stops", "routes"
   add_foreign_key "routes", "accounts"
+  add_foreign_key "routes", "optimization_jobs"
   add_foreign_key "service_types", "verticals"
   add_foreign_key "staffs", "accounts"
   add_foreign_key "travel_segments", "appointments", column: "from_appointment_id"
   add_foreign_key "travel_segments", "appointments", column: "to_appointment_id"
+  add_foreign_key "users", "accounts"
 end

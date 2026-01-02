@@ -1,5 +1,6 @@
 class Route < ApplicationRecord
   belongs_to :account
+  belongs_to :optimization_job, optional: true
   has_many :route_stops, dependent: :destroy
   has_many :appointments, through: :route_stops
 

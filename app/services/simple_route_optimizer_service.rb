@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
 class SimpleRouteOptimizerService
-  def initialize(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: [])
+  def initialize(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: [], optimization_job: nil)
     @account = Account.find(account_id)
     @date = date
     @optimization_type = optimization_type
-    @staff_ids = staff_ids
+    @staff_ids = staff_ids.map(&:to_i) # Convert to integers for comparison
+    @existing_job = optimization_job # Use existing job if provided (for async processing)
     @appointments = load_appointments
     @staff_members = load_staff_members
-    @maps_service = MockGoogleMapsService.new
+    @maps_service = build_maps_service
   end
 
   def optimize!
@@ -16,8 +17,8 @@ class SimpleRouteOptimizerService
     return failed_result("No available staff") if @staff_members.empty?
 
     begin
-      # Create optimization job record
-      job = OptimizationJob.create!(
+      # Use existing job (async mode) or create new one (sync mode)
+      job = @existing_job || OptimizationJob.create!(
         account: @account,
         requested_date: @date,
         status: "processing",
@@ -29,6 +30,18 @@ class SimpleRouteOptimizerService
         processing_started_at: Time.current
       )
 
+      # Update job status if using existing job
+      if @existing_job
+        job.update!(
+          status: "processing",
+          processing_started_at: Time.current,
+          parameters: job.parameters.merge(
+            "appointment_count" => @appointments.count,
+            "staff_count" => @staff_members.count
+          )
+        )
+      end
+
       # Build location data
       locations = build_location_data
 
@@ -39,7 +52,7 @@ class SimpleRouteOptimizerService
       optimized_routes = create_optimized_routes(distance_matrix)
 
       # Save routes to database
-      saved_routes = save_routes_to_database(optimized_routes)
+      saved_routes = save_routes_to_database(optimized_routes, job)
 
       # Calculate savings
       savings = calculate_savings(saved_routes, distance_matrix)
@@ -210,12 +223,13 @@ class SimpleRouteOptimizerService
     }
   end
 
-  def save_routes_to_database(optimized_routes)
+  def save_routes_to_database(optimized_routes, optimization_job)
     saved_routes = []
 
     optimized_routes.each do |route_data|
       route = Route.create!(
         account: @account,
+        optimization_job: optimization_job,
         scheduled_date: @date,
         status: "optimized",
         total_distance_meters: route_data[:total_distance_meters],
@@ -282,5 +296,20 @@ class SimpleRouteOptimizerService
       error: error_message,
       optimization_job: nil
     }
+  end
+
+  def build_maps_service
+    # Use real Google Maps API if configured, otherwise fall back to mock
+    if google_maps_api_available?
+      GoogleMapsService.new
+    else
+      Rails.logger.info "Google Maps API key not configured, using mock service"
+      MockGoogleMapsService.new
+    end
+  end
+
+  def google_maps_api_available?
+    Rails.application.credentials.dig(:google_maps, :api_key).present? ||
+      ENV["GOOGLE_MAPS_API_KEY"].present?
   end
 end

@@ -1,5 +1,6 @@
 class OptimizationJob < ApplicationRecord
   belongs_to :account
+  has_many :routes, dependent: :nullify
 
   validates :requested_date, presence: true
   validates :status, presence: true, inclusion: { in: %w[pending processing completed failed] }
@@ -23,6 +24,14 @@ class OptimizationJob < ApplicationRecord
 
   def processing?
     status == "processing"
+  end
+
+  def pending?
+    status == "pending"
+  end
+
+  def in_progress?
+    %w[pending processing].include?(status)
   end
 
   def time_savings

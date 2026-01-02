@@ -9,13 +9,15 @@ module Mutations
     argument :optimization_type, String, required: false, default_value: "minimize_travel_time"
     argument :staff_ids, [ ID ], required: false
     argument :force_reoptimization, Boolean, required: false, default_value: false
+    argument :async, Boolean, required: false, default_value: false,
+             description: "Run optimization in background. Returns immediately with pending job."
 
     field :optimization_job, Types::OptimizationJobType, null: true
     field :routes, [ Types::RouteType ], null: true
     field :estimated_savings, Types::OptimizationSavingsType, null: true
     field :errors, [ String ], null: false
 
-    def resolve(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: nil, force_reoptimization: false)
+    def resolve(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: nil, force_reoptimization: false, async: false)
       begin
         account = Account.find(account_id)
 
@@ -27,10 +29,9 @@ module Mutations
         ).order(created_at: :desc).first
 
         if existing_job && !force_reoptimization
-          routes = Route.where(account: account, scheduled_date: date, status: "optimized")
           return {
             optimization_job: existing_job,
-            routes: routes,
+            routes: existing_job.routes,
             estimated_savings: extract_savings_from_job(existing_job),
             errors: []
           }
@@ -65,7 +66,12 @@ module Mutations
           }
         end
 
-        # Start route optimization
+        # Async mode: queue job and return immediately
+        if async
+          return run_async_optimization(account, date, optimization_type, staff_ids)
+        end
+
+        # Sync mode: run optimization and wait for result
         optimizer = SimpleRouteOptimizerService.new(
           account_id: account.id,
           date: date,
@@ -135,6 +141,29 @@ module Mutations
         total_distance_km: metrics["total_distance_km"],
         routes_created: metrics["routes_created"]
       )
+    end
+
+    def run_async_optimization(account, date, optimization_type, staff_ids)
+      # Create a pending optimization job
+      job = OptimizationJob.create!(
+        account: account,
+        requested_date: date,
+        status: "pending",
+        parameters: {
+          optimization_type: optimization_type,
+          staff_ids: staff_ids || []
+        }
+      )
+
+      # Queue the background job
+      RouteOptimizationJob.perform_later(job.id)
+
+      {
+        optimization_job: job,
+        routes: [],
+        estimated_savings: nil,
+        errors: []
+      }
     end
   end
 end

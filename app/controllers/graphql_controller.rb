@@ -1,18 +1,13 @@
 # frozen_string_literal: true
 
 class GraphqlController < ApplicationController
-  # If accessing from outside this domain, nullify the session
-  # This allows for outside API access while preventing CSRF attacks,
-  # but you'll have to authenticate your user separately
-  # protect_from_forgery with: :null_session
-
   def execute
     variables = prepare_variables(params[:variables])
     query = params[:query]
     operation_name = params[:operationName]
     context = {
-      # Query context goes here, for example:
-      # current_user: current_user,
+      current_user: current_user,
+      remote_ip: request.remote_ip
     }
     result = CarestackSchema.execute(query, variables: variables, context: context, operation_name: operation_name)
     render json: result
@@ -48,5 +43,32 @@ class GraphqlController < ApplicationController
     logger.error e.backtrace.join("\n")
 
     render json: { errors: [ { message: e.message, backtrace: e.backtrace } ], data: {} }, status: 500
+  end
+
+  # Extract JWT from Authorization header and return current user
+  def current_user
+    return @current_user if defined?(@current_user)
+
+    @current_user = nil
+    token = extract_token_from_header
+
+    if token.present?
+      @current_user = JwtService.user_from_token(token)
+    end
+
+    @current_user
+  end
+
+  # Extract Bearer token from Authorization header
+  def extract_token_from_header
+    auth_header = request.headers["Authorization"]
+    return nil if auth_header.blank?
+
+    # Support "Bearer <token>" format
+    if auth_header.start_with?("Bearer ")
+      auth_header.split(" ").last
+    else
+      auth_header
+    end
   end
 end
