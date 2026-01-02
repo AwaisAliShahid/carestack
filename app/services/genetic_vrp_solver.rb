@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class GeneticVRPSolver
+class GeneticVrpSolver
   attr_reader :distance_matrix, :appointments, :staff_members, :objective, :max_iterations, :population_size
 
   def initialize(distance_matrix:, appointments:, staff_members:, objective: :minimize_time, max_iterations: 1000, population_size: 50)

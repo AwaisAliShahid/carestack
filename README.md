@@ -174,7 +174,7 @@ Currently implements a **nearest-neighbor heuristic**:
 3. Repeat until all appointments are scheduled
 4. Return to home location
 
-A genetic algorithm solver (`GeneticVRPSolver`) is available for more advanced optimization.
+A genetic algorithm solver (`GeneticVrpSolver`) is available for more advanced optimization.
 
 ## License
 
