@@ -453,7 +453,7 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     uber (0.1.0)
-    ulid (1.2.0)
+    ulid (1.4.0)
     unicode-display_width (3.1.5)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
@@ -530,7 +530,7 @@ DEPENDENCIES
   stripe (~> 5.55)
   stripe_event (~> 2.3)
   timecop
-  ulid (~> 1.2.0)
+  ulid (~> 1.4.0)
   webmock
   will_paginate (~> 4.0)
 
