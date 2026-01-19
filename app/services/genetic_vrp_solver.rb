@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 class GeneticVrpSolver
-  attr_reader :distance_matrix, :appointments, :staff_members, :objective, :max_iterations, :population_size
+  attr_reader :distance_matrix, :appointments, :staff_members, :objective, :max_iterations, :population_size,
+              :mutation_rate, :crossover_rate, :elite_size
 
   def initialize(distance_matrix:, appointments:, staff_members:, objective: :minimize_time, max_iterations: 1000, population_size: 50)
     @distance_matrix = distance_matrix
@@ -221,18 +222,22 @@ class GeneticVrpSolver
       route = solution.select { |r| r[:appointments].count > 1 }.sample
       return unless route
 
-      i, j = route[:appointments].sample(2)
+      indices = (0...route[:appointments].length).to_a.sample(2)
+      return if indices.length < 2
+
+      i, j = indices
       route[:appointments][i], route[:appointments][j] = route[:appointments][j], route[:appointments][i]
 
     when 1 # Move appointment between routes
       from_route = solution.select { |r| r[:appointments].any? }.sample
       to_route = solution.sample
       return unless from_route && to_route && from_route != to_route
+      return if from_route[:appointments].empty?
 
       appointment_id = from_route[:appointments].delete_at(rand(from_route[:appointments].length))
       appointment = appointments.find { |a| a.id == appointment_id }
 
-      if can_assign_appointment?(to_route[:staff_id], appointment)
+      if appointment && can_assign_appointment?(to_route[:staff_id], appointment)
         to_route[:appointments] << appointment_id
       else
         from_route[:appointments] << appointment_id # Revert if invalid
@@ -315,16 +320,18 @@ class GeneticVrpSolver
 
     route[:appointments].each do |appointment_id|
       appointment = appointments.find { |a| a.id == appointment_id }
-      appointment_location = appointment_location(appointment)
+      next unless appointment # Skip invalid appointment IDs
+
+      appt_location = appointment_location(appointment)
 
       # Travel time to appointment
-      travel_time = get_travel_time(current_location, appointment_location)
+      travel_time = get_travel_time(current_location, appt_location)
       total_time += travel_time
 
       # Service time
       total_time += appointment.service_type.duration_minutes * 60
 
-      current_location = appointment_location
+      current_location = appt_location
     end
 
     # Return home
@@ -340,13 +347,15 @@ class GeneticVrpSolver
 
     route[:appointments].each do |appointment_id|
       appointment = appointments.find { |a| a.id == appointment_id }
-      appointment_location = appointment_location(appointment)
+      next unless appointment # Skip invalid appointment IDs
+
+      appt_location = appointment_location(appointment)
 
       # Travel distance to appointment
-      travel_distance = get_travel_distance(current_location, appointment_location)
+      travel_distance = get_travel_distance(current_location, appt_location)
       total_distance += travel_distance
 
-      current_location = appointment_location
+      current_location = appt_location
     end
 
     # Return home
@@ -406,6 +415,7 @@ class GeneticVrpSolver
     appointment_ids.each_cons(2) do |from_id, to_id|
       from_appointment = appointments.find { |a| a.id == from_id }
       to_appointment = appointments.find { |a| a.id == to_id }
+      next unless from_appointment && to_appointment
 
       from_location = appointment_location(from_appointment)
       to_location = appointment_location(to_appointment)
