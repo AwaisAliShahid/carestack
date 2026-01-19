@@ -9,7 +9,7 @@ module Types
     field :actual_arrival, GraphQL::Types::ISO8601DateTime, null: true
     field :actual_departure, GraphQL::Types::ISO8601DateTime, null: true
 
-    # Associations
+    # Associations - use dataloader to avoid N+1
     field :route, Types::RouteType, null: false
     field :appointment, Types::AppointmentType, null: false
 
@@ -20,8 +20,21 @@ module Types
     field :delayed, Boolean, null: false
     field :delay_minutes, Integer, null: false
 
+    # Batch load route to avoid N+1
+    def route
+      dataloader.with(Sources::RecordSource, Route).load(object.route_id)
+    end
+
+    # Batch load appointment to avoid N+1
+    def appointment
+      dataloader.with(Sources::RecordSource, Appointment).load(object.appointment_id)
+    end
+
     def service_duration_minutes
-      object.appointment.service_type.duration_minutes
+      # Batch load appointment, then batch load its service_type
+      dataloader.with(Sources::RecordSource, Appointment).load(object.appointment_id).then do |appt|
+        dataloader.with(Sources::RecordSource, ServiceType).load(appt.service_type_id).then(&:duration_minutes)
+      end
     end
 
     def buffer_time_minutes

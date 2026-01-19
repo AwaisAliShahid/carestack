@@ -10,7 +10,7 @@ module Types
     field :created_at, GraphQL::Types::ISO8601DateTime, null: false
     field :updated_at, GraphQL::Types::ISO8601DateTime, null: false
 
-    # Associations
+    # Associations - use dataloader to avoid N+1
     field :account, Types::AccountType, null: false
     field :customer, Types::CustomerType, null: true
     field :service_type, Types::ServiceType, null: false
@@ -27,6 +27,30 @@ module Types
     # Business logic fields
     field :vertical_name, String, null: false
     field :requires_compliance, Boolean, null: false
+
+    # Batch load account to avoid N+1
+    def account
+      dataloader.with(Sources::RecordSource, Account).load(object.account_id)
+    end
+
+    # Batch load customer to avoid N+1
+    def customer
+      return nil unless object.customer_id
+
+      dataloader.with(Sources::RecordSource, Customer).load(object.customer_id)
+    end
+
+    # Batch load service_type to avoid N+1
+    def service_type
+      dataloader.with(Sources::RecordSource, ServiceType).load(object.service_type_id)
+    end
+
+    # Batch load staff to avoid N+1
+    def staff
+      return nil unless object.staff_id
+
+      dataloader.with(Sources::RecordSource, Staff).load(object.staff_id)
+    end
 
     def duration_in_hours
       hours = object.duration_minutes / 60.0
@@ -50,11 +74,17 @@ module Types
     end
 
     def vertical_name
-      object.account.vertical.display_name
+      # Batch load account, then batch load its vertical
+      dataloader.with(Sources::RecordSource, Account).load(object.account_id).then do |acct|
+        dataloader.with(Sources::RecordSource, Vertical).load(acct.vertical_id).then(&:display_name)
+      end
     end
 
     def requires_compliance
-      object.account.vertical.requires_compliance_tracking?
+      # Batch load account, then batch load its vertical
+      dataloader.with(Sources::RecordSource, Account).load(object.account_id).then do |acct|
+        dataloader.with(Sources::RecordSource, Vertical).load(acct.vertical_id).then(&:requires_compliance_tracking?)
+      end
     end
   end
 end

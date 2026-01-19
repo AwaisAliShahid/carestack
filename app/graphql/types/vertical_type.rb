@@ -41,12 +41,14 @@ module Types
       object.requires_background_checks?
     end
 
+    # Batch load account counts to avoid N+1
     def total_accounts
-      object.accounts.count
+      dataloader.with(Sources::CountSource, Account, :vertical_id).load(object.id)
     end
 
+    # Batch load service_type counts to avoid N+1
     def total_service_types
-      object.service_types.count
+      dataloader.with(Sources::CountSource, ServiceType, :vertical_id).load(object.id)
     end
   end
 end

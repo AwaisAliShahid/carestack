@@ -30,9 +30,11 @@ module Mutations
         ).order(created_at: :desc).first
 
         if existing_job && !force_reoptimization
+          # Eager load routes with associations to avoid N+1
+          routes = existing_job.routes.includes(route_stops: { appointment: [ :customer, :service_type, :staff ] })
           return {
             optimization_job: existing_job,
-            routes: existing_job.routes,
+            routes: routes,
             estimated_savings: extract_savings_from_job(existing_job),
             errors: []
           }
@@ -50,7 +52,9 @@ module Mutations
         end
 
         # Check if there are appointments to optimize
+        # Eager load associations to avoid N+1 when processing
         appointments = account.appointments
+                             .includes(:customer, :service_type, :staff)
                              .where(scheduled_at: date.beginning_of_day..date.end_of_day)
                              .where(status: [ "scheduled", "confirmed" ])
 
