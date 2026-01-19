@@ -77,7 +77,7 @@ module Types
       if current_user.admin? && current_user.account_id.nil?
         Account.all
       elsif current_user.account
-        [current_user.account]
+        [ current_user.account ]
       else
         []
       end

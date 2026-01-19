@@ -59,7 +59,7 @@ module Mutations
       rescue ActiveRecord::RecordNotFound => e
         {
           appointment: nil,
-          errors: ["Record not found: #{e.message}"]
+          errors: [ "Record not found: #{e.message}" ]
         }
       rescue ActiveRecord::RecordInvalid => e
         {
@@ -69,7 +69,7 @@ module Mutations
       rescue StandardError => e
         {
           appointment: nil,
-          errors: ["An error occurred: #{e.message}"]
+          errors: [ "An error occurred: #{e.message}" ]
         }
       end
     end

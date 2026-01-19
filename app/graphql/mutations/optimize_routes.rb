@@ -105,7 +105,7 @@ module Mutations
           optimization_job: nil,
           routes: [],
           estimated_savings: nil,
-          errors: ["Record not found: #{e.message}"]
+          errors: [ "Record not found: #{e.message}" ]
         }
       rescue StandardError => e
         Rails.logger.error "Route optimization mutation failed: #{e.message}"
@@ -115,7 +115,7 @@ module Mutations
           optimization_job: nil,
           routes: [],
           estimated_savings: nil,
-          errors: ["Optimization failed: #{e.message}"]
+          errors: [ "Optimization failed: #{e.message}" ]
         }
       end
     end
