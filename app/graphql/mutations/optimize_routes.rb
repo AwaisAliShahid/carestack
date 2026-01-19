@@ -19,7 +19,8 @@ module Mutations
 
     def resolve(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: nil, force_reoptimization: false, async: false)
       begin
-        account = Account.find(account_id)
+        # Authorize access to the account
+        account = authorize_account_access!(account_id)
 
         # Check if optimization already exists for this date
         existing_job = OptimizationJob.where(
@@ -97,12 +98,14 @@ module Mutations
           }
         end
 
+      rescue Authorize::AuthenticationError, Authorize::AuthorizationError
+        raise
       rescue ActiveRecord::RecordNotFound => e
         {
           optimization_job: nil,
           routes: [],
           estimated_savings: nil,
-          errors: [ "Record not found: #{e.message}" ]
+          errors: ["Record not found: #{e.message}"]
         }
       rescue StandardError => e
         Rails.logger.error "Route optimization mutation failed: #{e.message}"
@@ -112,7 +115,7 @@ module Mutations
           optimization_job: nil,
           routes: [],
           estimated_savings: nil,
-          errors: [ "Optimization failed: #{e.message}" ]
+          errors: ["Optimization failed: #{e.message}"]
         }
       end
     end

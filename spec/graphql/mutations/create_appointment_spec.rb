@@ -41,6 +41,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
       let(:customer) { create(:customer, account: account) }
       let(:service_type) { create(:service_type, vertical: vertical, duration_minutes: 120) }
       let(:staff) { create(:staff, account: account) }
+      let(:user) { create(:user, account: account) }
 
       it "creates an appointment successfully" do
         variables = {
@@ -51,7 +52,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         expect(graphql_data(result, "createAppointment", "errors")).to be_empty
         expect(graphql_data(result, "createAppointment", "appointment")).to be_present
@@ -67,7 +68,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         expect(graphql_data(result, "createAppointment", "appointment", "durationMinutes")).to eq(120)
       end
@@ -82,7 +83,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           notes: "Customer prefers morning appointments"
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         expect(graphql_data(result, "createAppointment", "appointment", "notes")).to eq("Customer prefers morning appointments")
       end
@@ -96,7 +97,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        expect { execute_graphql(mutation, variables: variables) }.to change(Appointment, :count).by(1)
+        expect { execute_graphql(mutation, variables: variables, current_user: user) }.to change(Appointment, :count).by(1)
       end
     end
 
@@ -106,6 +107,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
       let(:customer) { create(:customer, account: account) }
       let(:service_type) { create(:service_type, :companion_care, vertical: vertical) }
       let(:staff) { create(:staff, :background_checked, account: account) }
+      let(:user) { create(:user, account: account) }
 
       it "creates appointment when staff has background check" do
         variables = {
@@ -116,10 +118,53 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         expect(graphql_data(result, "createAppointment", "errors")).to be_empty
         expect(graphql_data(result, "createAppointment", "appointment")).to be_present
+      end
+    end
+  end
+
+  describe "authorization" do
+    let(:vertical) { create(:vertical, :cleaning) }
+    let(:account) { create(:account, vertical: vertical) }
+    let(:other_account) { create(:account, vertical: vertical) }
+    let(:customer) { create(:customer, account: account) }
+    let(:service_type) { create(:service_type, vertical: vertical) }
+    let(:staff) { create(:staff, account: account) }
+
+    context "when user is not logged in" do
+      it "returns authentication error" do
+        variables = {
+          accountId: account.id.to_s,
+          customerId: customer.id.to_s,
+          serviceTypeId: service_type.id.to_s,
+          staffId: staff.id.to_s,
+          scheduledAt: 1.day.from_now.iso8601
+        }
+
+        result = execute_graphql(mutation, variables: variables)
+
+        expect(graphql_errors(result)).to include("You must be logged in to perform this action")
+      end
+    end
+
+    context "when user tries to access another account" do
+      let(:user) { create(:user, account: other_account) }
+
+      it "returns authorization error" do
+        variables = {
+          accountId: account.id.to_s,
+          customerId: customer.id.to_s,
+          serviceTypeId: service_type.id.to_s,
+          staffId: staff.id.to_s,
+          scheduledAt: 1.day.from_now.iso8601
+        }
+
+        result = execute_graphql(mutation, variables: variables, current_user: user)
+
+        expect(graphql_errors(result)).to include("You do not have access to this account")
       end
     end
   end
@@ -132,6 +177,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
       let(:customer) { create(:customer, account: account) }
       let(:wrong_service_type) { create(:service_type, vertical: elderly_vertical) }
       let(:staff) { create(:staff, account: account) }
+      let(:user) { create(:user, account: account) }
 
       it "returns error when service type is from different vertical" do
         variables = {
@@ -142,7 +188,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         errors = graphql_data(result, "createAppointment", "errors")
         expect(errors).to include(match(/not available for/))
@@ -157,6 +203,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
       let(:customer) { create(:customer, account: account) }
       let(:service_type) { create(:service_type, vertical: vertical) }
       let(:wrong_staff) { create(:staff, account: other_account) }
+      let(:user) { create(:user, account: account) }
 
       it "returns error when staff belongs to different account" do
         variables = {
@@ -167,7 +214,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         errors = graphql_data(result, "createAppointment", "errors")
         expect(errors).to include("Staff member does not belong to this account")
@@ -181,6 +228,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
         let(:customer) { create(:customer, account: account) }
         let(:service_type) { create(:service_type, :post_construction, vertical: vertical) }
         let(:staff) { create(:staff, :not_background_checked, account: account) }
+        let(:user) { create(:user, account: account) }
 
         it "returns error when staff lacks required background check" do
           variables = {
@@ -191,7 +239,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
             scheduledAt: 1.day.from_now.iso8601
           }
 
-          result = execute_graphql(mutation, variables: variables)
+          result = execute_graphql(mutation, variables: variables, current_user: user)
 
           errors = graphql_data(result, "createAppointment", "errors")
           expect(errors).to include(match(/must have passed background check/))
@@ -204,6 +252,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
         let(:customer) { create(:customer, account: account) }
         let(:service_type) { create(:service_type, :companion_care, vertical: vertical) }
         let(:staff) { create(:staff, :not_background_checked, account: account) }
+        let(:user) { create(:user, account: account) }
 
         it "returns error when staff lacks background check" do
           variables = {
@@ -214,7 +263,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
             scheduledAt: 1.day.from_now.iso8601
           }
 
-          result = execute_graphql(mutation, variables: variables)
+          result = execute_graphql(mutation, variables: variables, current_user: user)
 
           errors = graphql_data(result, "createAppointment", "errors")
           expect(errors).to include("All elderly care staff must have passed background checks")
@@ -226,8 +275,9 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
       let(:vertical) { create(:vertical, :elderly_care) }
       let(:account) { create(:account, vertical: vertical) }
       let(:customer) { create(:customer, account: account) }
-      let(:service_type) { create(:service_type, :full_day_care, vertical: vertical) } # min_staff_ratio: 2.0
+      let(:service_type) { create(:service_type, :full_day_care, vertical: vertical) }
       let(:staff) { create(:staff, :background_checked, account: account) }
+      let(:user) { create(:user, account: account) }
 
       it "returns error for services requiring multiple staff" do
         variables = {
@@ -238,7 +288,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         errors = graphql_data(result, "createAppointment", "errors")
         expect(errors).to include(match(/requires.*staff members minimum/))
@@ -248,6 +298,7 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
     context "record not found" do
       let(:vertical) { create(:vertical, :cleaning) }
       let(:account) { create(:account, vertical: vertical) }
+      let(:user) { create(:user, account: nil, role: "admin") }
 
       it "returns error for non-existent account" do
         variables = {
@@ -258,10 +309,9 @@ RSpec.describe Mutations::CreateAppointment, type: :graphql do
           scheduledAt: 1.day.from_now.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
-        errors = graphql_data(result, "createAppointment", "errors")
-        expect(errors.first).to include("Record not found")
+        expect(graphql_errors(result)).to include("You do not have access to this account")
       end
     end
   end

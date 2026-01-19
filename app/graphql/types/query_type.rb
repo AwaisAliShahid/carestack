@@ -4,6 +4,7 @@ module Types
   class QueryType < Types::BaseObject
     include GraphQL::Types::Relay::HasNodeField
     include GraphQL::Types::Relay::HasNodesField
+    include Authorize
 
     # Add root-level fields type by type.
 
@@ -70,11 +71,20 @@ module Types
     end
 
     def accounts
-      Account.all
+      authenticate!
+
+      # Super admins can see all accounts, regular users only their own
+      if current_user.admin? && current_user.account_id.nil?
+        Account.all
+      elsif current_user.account
+        [current_user.account]
+      else
+        []
+      end
     end
 
     def account(id:)
-      Account.find_by(id: id)
+      authorize_account_access!(id)
     end
 
     def service_types
@@ -86,10 +96,21 @@ module Types
     end
 
     def optimization_job(id:)
-      OptimizationJob.find_by(id: id)
+      authenticate!
+      job = OptimizationJob.find_by(id: id)
+      return nil unless job
+
+      # Verify user has access to this job's account
+      unless can_access_account?(job.account)
+        raise Authorize::AuthorizationError, "You do not have access to this optimization job"
+      end
+
+      job
     end
 
     def optimization_jobs(account_id:, status: nil, limit: 10)
+      authorize_account_access!(account_id)
+
       scope = OptimizationJob.where(account_id: account_id).order(created_at: :desc).limit(limit)
       scope = scope.where(status: status) if status.present?
       scope

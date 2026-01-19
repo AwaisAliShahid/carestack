@@ -46,6 +46,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
     let(:account) { create(:account, vertical: vertical) }
     let(:service_type) { create(:service_type, vertical: vertical, duration_minutes: 60) }
     let(:staff) { create(:staff, :downtown_based, account: account) }
+    let(:user) { create(:user, account: account) }
     let(:today) { Date.current }
 
     before do
@@ -77,7 +78,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
         date: today.iso8601
       }
 
-      result = execute_graphql(mutation, variables: variables)
+      result = execute_graphql(mutation, variables: variables, current_user: user)
 
       expect(graphql_data(result, "optimizeRoutes", "errors")).to be_empty
       expect(graphql_data(result, "optimizeRoutes", "routes")).not_to be_empty
@@ -89,7 +90,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
         date: today.iso8601
       }
 
-      result = execute_graphql(mutation, variables: variables)
+      result = execute_graphql(mutation, variables: variables, current_user: user)
 
       job = graphql_data(result, "optimizeRoutes", "optimizationJob")
       expect(job).to be_present
@@ -102,7 +103,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
         date: today.iso8601
       }
 
-      result = execute_graphql(mutation, variables: variables)
+      result = execute_graphql(mutation, variables: variables, current_user: user)
 
       savings = graphql_data(result, "optimizeRoutes", "estimatedSavings")
       expect(savings).to be_present
@@ -114,7 +115,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
         date: today.iso8601
       }
 
-      result = execute_graphql(mutation, variables: variables)
+      result = execute_graphql(mutation, variables: variables, current_user: user)
 
       routes = graphql_data(result, "optimizeRoutes", "routes")
       routes.each do |route|
@@ -128,6 +129,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
     let(:account) { create(:account, vertical: vertical) }
     let(:service_type) { create(:service_type, vertical: vertical) }
     let(:staff) { create(:staff, account: account) }
+    let(:user) { create(:user, account: account) }
     let(:today) { Date.current }
 
     before do
@@ -150,7 +152,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
           optimizationType: opt_type
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         expect(graphql_data(result, "optimizeRoutes", "errors")).to be_empty
       end
@@ -163,7 +165,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
         optimizationType: "invalid_type"
       }
 
-      result = execute_graphql(mutation, variables: variables)
+      result = execute_graphql(mutation, variables: variables, current_user: user)
 
       errors = graphql_data(result, "optimizeRoutes", "errors")
       expect(errors.first).to include("Invalid optimization type")
@@ -175,6 +177,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
     let(:account) { create(:account, vertical: vertical) }
     let(:service_type) { create(:service_type, vertical: vertical) }
     let(:staff) { create(:staff, account: account) }
+    let(:user) { create(:user, account: account) }
     let(:today) { Date.current }
 
     before do
@@ -190,17 +193,15 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
     end
 
     it "returns cached result when optimization already exists" do
-      # First optimization
       variables = {
         accountId: account.id.to_s,
         date: today.iso8601
       }
 
-      first_result = execute_graphql(mutation, variables: variables)
+      first_result = execute_graphql(mutation, variables: variables, current_user: user)
       first_job_id = graphql_data(first_result, "optimizeRoutes", "optimizationJob", "id")
 
-      # Second call should return cached result
-      second_result = execute_graphql(mutation, variables: variables)
+      second_result = execute_graphql(mutation, variables: variables, current_user: user)
       second_job_id = graphql_data(second_result, "optimizeRoutes", "optimizationJob", "id")
 
       expect(second_job_id).to eq(first_job_id)
@@ -212,12 +213,11 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
         date: today.iso8601
       }
 
-      first_result = execute_graphql(mutation, variables: variables)
+      first_result = execute_graphql(mutation, variables: variables, current_user: user)
       first_job_id = graphql_data(first_result, "optimizeRoutes", "optimizationJob", "id")
 
-      # Force reoptimization
       variables_with_force = variables.merge(forceReoptimization: true)
-      second_result = execute_graphql(mutation, variables: variables_with_force)
+      second_result = execute_graphql(mutation, variables: variables_with_force, current_user: user)
       second_job_id = graphql_data(second_result, "optimizeRoutes", "optimizationJob", "id")
 
       expect(second_job_id).not_to eq(first_job_id)
@@ -230,6 +230,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
     let(:service_type) { create(:service_type, vertical: vertical, duration_minutes: 60) }
     let(:staff1) { create(:staff, :downtown_based, account: account) }
     let(:staff2) { create(:staff, :west_based, account: account) }
+    let(:user) { create(:user, account: account) }
     let(:today) { Date.current }
 
     before do
@@ -259,11 +260,11 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
       variables = {
         accountId: account.id.to_s,
         date: today.iso8601,
-        staffIds: [ staff1.id.to_s ],
+        staffIds: [staff1.id.to_s],
         forceReoptimization: true
       }
 
-      result = execute_graphql(mutation, variables: variables)
+      result = execute_graphql(mutation, variables: variables, current_user: user)
 
       errors = graphql_data(result, "optimizeRoutes", "errors")
       expect(errors).to be_empty
@@ -273,9 +274,45 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
     end
   end
 
+  describe "authorization" do
+    let(:vertical) { create(:vertical, :cleaning) }
+    let(:account) { create(:account, vertical: vertical) }
+    let(:other_account) { create(:account, vertical: vertical) }
+    let(:today) { Date.current }
+
+    context "when user is not logged in" do
+      it "returns authentication error" do
+        variables = {
+          accountId: account.id.to_s,
+          date: today.iso8601
+        }
+
+        result = execute_graphql(mutation, variables: variables)
+
+        expect(graphql_errors(result)).to include("You must be logged in to perform this action")
+      end
+    end
+
+    context "when user tries to access another account" do
+      let(:user) { create(:user, account: other_account) }
+
+      it "returns authorization error" do
+        variables = {
+          accountId: account.id.to_s,
+          date: today.iso8601
+        }
+
+        result = execute_graphql(mutation, variables: variables, current_user: user)
+
+        expect(graphql_errors(result)).to include("You do not have access to this account")
+      end
+    end
+  end
+
   describe "error handling" do
     context "no appointments" do
       let(:account) { create(:account) }
+      let(:user) { create(:user, account: account) }
       let(:today) { Date.current }
 
       it "returns error when no appointments exist" do
@@ -284,7 +321,7 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
           date: today.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
         errors = graphql_data(result, "optimizeRoutes", "errors")
         expect(errors.first).to include("No appointments found")
@@ -292,16 +329,17 @@ RSpec.describe Mutations::OptimizeRoutes, type: :graphql do
     end
 
     context "invalid account" do
+      let(:user) { create(:user, account: nil, role: "admin") }
+
       it "returns error for non-existent account" do
         variables = {
           accountId: "99999",
           date: Date.current.iso8601
         }
 
-        result = execute_graphql(mutation, variables: variables)
+        result = execute_graphql(mutation, variables: variables, current_user: user)
 
-        errors = graphql_data(result, "optimizeRoutes", "errors")
-        expect(errors.first).to include("Record not found")
+        expect(graphql_errors(result)).to include("You do not have access to this account")
       end
     end
   end

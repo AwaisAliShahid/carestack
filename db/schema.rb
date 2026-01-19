@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_01_192831) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_19_210628) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -35,6 +35,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_01_192831) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["account_id", "scheduled_at", "status"], name: "index_appointments_on_account_date_status"
     t.index ["account_id"], name: "index_appointments_on_account_id"
     t.index ["customer_id"], name: "index_appointments_on_customer_id"
     t.index ["service_type_id"], name: "index_appointments_on_service_type_id"
@@ -53,6 +54,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_01_192831) do
     t.decimal "latitude"
     t.decimal "longitude"
     t.string "geocoded_address"
+    t.index ["account_id", "latitude", "longitude"], name: "index_customers_on_account_location"
     t.index ["account_id"], name: "index_customers_on_account_id"
   end
 
@@ -82,6 +84,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_01_192831) do
     t.datetime "processing_completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["account_id", "requested_date", "status"], name: "index_optimization_jobs_on_account_date_status"
     t.index ["account_id"], name: "index_optimization_jobs_on_account_id"
   end
 
@@ -108,6 +111,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_01_192831) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "optimization_job_id"
+    t.index ["account_id", "scheduled_date", "status"], name: "index_routes_on_account_date_status"
     t.index ["account_id"], name: "index_routes_on_account_id"
     t.index ["optimization_job_id"], name: "index_routes_on_optimization_job_id"
   end
@@ -135,6 +139,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_01_192831) do
     t.decimal "home_latitude"
     t.decimal "home_longitude"
     t.integer "max_travel_radius_km"
+    t.index ["account_id", "home_latitude", "home_longitude"], name: "index_staffs_on_account_home_location"
     t.index ["account_id"], name: "index_staffs_on_account_id"
   end
 

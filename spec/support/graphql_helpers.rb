@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 module GraphqlHelpers
-  def execute_graphql(query, variables: {}, context: {})
+  def execute_graphql(query, variables: {}, context: {}, current_user: nil)
+    context = context.merge(current_user: current_user) if current_user
     CarestackSchema.execute(
       query,
       variables: variables,

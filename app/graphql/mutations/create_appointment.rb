@@ -21,8 +21,8 @@ module Mutations
       errors = []
 
       begin
-        # Load all required records
-        account = Account.find(account_id)
+        # Authorize access to the account
+        account = authorize_account_access!(account_id)
         customer = Customer.find(customer_id)
         service_type = ServiceType.find(service_type_id)
         staff = Staff.find(staff_id)
@@ -54,10 +54,12 @@ module Mutations
           errors: []
         }
 
+      rescue Authorize::AuthenticationError, Authorize::AuthorizationError
+        raise
       rescue ActiveRecord::RecordNotFound => e
         {
           appointment: nil,
-          errors: [ "Record not found: #{e.message}" ]
+          errors: ["Record not found: #{e.message}"]
         }
       rescue ActiveRecord::RecordInvalid => e
         {
@@ -67,7 +69,7 @@ module Mutations
       rescue StandardError => e
         {
           appointment: nil,
-          errors: [ "An error occurred: #{e.message}" ]
+          errors: ["An error occurred: #{e.message}"]
         }
       end
     end
