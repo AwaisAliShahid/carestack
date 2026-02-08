@@ -14,6 +14,9 @@ class GeneticVrpSolver
     @mutation_rate = 0.15
     @crossover_rate = 0.8
     @elite_size = (population_size * 0.2).to_i
+
+    # Index appointments by ID for O(1) lookups instead of O(n) linear scans
+    @appointments_by_id = appointments.index_by(&:id)
   end
 
   def solve
@@ -60,6 +63,10 @@ class GeneticVrpSolver
 
   private
 
+  def find_appointment(appointment_id)
+    @appointments_by_id[appointment_id]
+  end
+
   def generate_initial_population
     population = []
 
@@ -90,7 +97,7 @@ class GeneticVrpSolver
       }
     end
 
-    # Randomly distribute appointments
+    # Randomly distribute appointments across all available staff
     appointments.each do |appointment|
       available_staff = solution.select { |route| can_assign_appointment?(route[:staff_id], appointment) }
       next if available_staff.empty?
@@ -125,7 +132,7 @@ class GeneticVrpSolver
         next if route[:appointments].count >= max_appointments_per_route
 
         unassigned.each do |appointment_id|
-          appointment = appointments.find { |a| a.id == appointment_id }
+          appointment = find_appointment(appointment_id)
           next unless can_assign_appointment?(route[:staff_id], appointment)
 
           # Try inserting at each position
@@ -192,7 +199,7 @@ class GeneticVrpSolver
     offspring2 = deep_copy_solution(parent2)
 
     # Order crossover for route sequences
-    staff_members.each_with_index do |staff, staff_index|
+    staff_members.each_with_index do |_staff, staff_index|
       route1 = parent1[staff_index][:appointments]
       route2 = parent2[staff_index][:appointments]
 
@@ -228,14 +235,14 @@ class GeneticVrpSolver
       i, j = indices
       route[:appointments][i], route[:appointments][j] = route[:appointments][j], route[:appointments][i]
 
-    when 1 # Move appointment between routes
+    when 1 # Move appointment between routes (actual VRP reassignment)
       from_route = solution.select { |r| r[:appointments].any? }.sample
       to_route = solution.sample
       return unless from_route && to_route && from_route != to_route
       return if from_route[:appointments].empty?
 
       appointment_id = from_route[:appointments].delete_at(rand(from_route[:appointments].length))
-      appointment = appointments.find { |a| a.id == appointment_id }
+      appointment = find_appointment(appointment_id)
 
       if appointment && can_assign_appointment?(to_route[:staff_id], appointment)
         to_route[:appointments] << appointment_id
@@ -319,7 +326,7 @@ class GeneticVrpSolver
     current_location = route[:home_location]
 
     route[:appointments].each do |appointment_id|
-      appointment = appointments.find { |a| a.id == appointment_id }
+      appointment = find_appointment(appointment_id)
       next unless appointment # Skip invalid appointment IDs
 
       appt_location = appointment_location(appointment)
@@ -346,7 +353,7 @@ class GeneticVrpSolver
     current_location = route[:home_location]
 
     route[:appointments].each do |appointment_id|
-      appointment = appointments.find { |a| a.id == appointment_id }
+      appointment = find_appointment(appointment_id)
       next unless appointment # Skip invalid appointment IDs
 
       appt_location = appointment_location(appointment)
@@ -402,7 +409,7 @@ class GeneticVrpSolver
     return 0.0 if work_times.empty?
 
     avg_time = work_times.sum / work_times.length.to_f
-    variance = work_times.sum { |time| (time - avg_time) ** 2 } / work_times.length.to_f
+    variance = work_times.sum { |time| (time - avg_time)**2 } / work_times.length.to_f
 
     Math.sqrt(variance) # Standard deviation as penalty
   end
@@ -413,8 +420,8 @@ class GeneticVrpSolver
     total_distance = 0.0
 
     appointment_ids.each_cons(2) do |from_id, to_id|
-      from_appointment = appointments.find { |a| a.id == from_id }
-      to_appointment = appointments.find { |a| a.id == to_id }
+      from_appointment = find_appointment(from_id)
+      to_appointment = find_appointment(to_id)
       next unless from_appointment && to_appointment
 
       from_location = appointment_location(from_appointment)
@@ -435,8 +442,8 @@ class GeneticVrpSolver
       next if route_data[:appointments].empty?
 
       staff = staff_members.find { |s| s.id == route_data[:staff_id] }
-      route_appointments = route_data[:appointments].map do |appointment_id|
-        appointments.find { |a| a.id == appointment_id }
+      route_appointments = route_data[:appointments].filter_map do |appointment_id|
+        find_appointment(appointment_id)
       end
 
       total_distance = calculate_total_distance(route_data)
@@ -502,8 +509,12 @@ class GeneticVrpSolver
   end
 
   def can_assign_appointment?(staff_id, appointment)
-    # Basic assignment rules - can be expanded
-    appointment.staff_id == staff_id
+    # Allow reassignment to any staff within the same account
+    # The GA's power comes from redistributing work across staff
+    staff = staff_members.find { |s| s.id == staff_id }
+    return false unless staff
+
+    staff.account_id == appointment.account_id
   end
 
   def max_appointments_per_route
@@ -514,13 +525,13 @@ class GeneticVrpSolver
     # Calculate cost of inserting appointment at given position
     return 0.0 if route[:appointments].empty?
 
-    appointment = appointments.find { |a| a.id == appointment_id }
+    appointment = find_appointment(appointment_id)
     appointment_loc = appointment_location(appointment)
 
     if position == 0
       # Insert at beginning
       home_loc = route[:home_location]
-      next_appointment = appointments.find { |a| a.id == route[:appointments][0] }
+      next_appointment = find_appointment(route[:appointments][0])
       next_loc = appointment_location(next_appointment)
 
       # Cost = home -> new + new -> next - home -> next
@@ -531,7 +542,7 @@ class GeneticVrpSolver
       new_cost - old_cost
     elsif position == route[:appointments].length
       # Insert at end
-      prev_appointment = appointments.find { |a| a.id == route[:appointments][-1] }
+      prev_appointment = find_appointment(route[:appointments][-1])
       prev_loc = appointment_location(prev_appointment)
       home_loc = route[:home_location]
 
@@ -543,8 +554,8 @@ class GeneticVrpSolver
       new_cost - old_cost
     else
       # Insert in middle
-      prev_appointment = appointments.find { |a| a.id == route[:appointments][position - 1] }
-      next_appointment = appointments.find { |a| a.id == route[:appointments][position] }
+      prev_appointment = find_appointment(route[:appointments][position - 1])
+      next_appointment = find_appointment(route[:appointments][position])
 
       prev_loc = appointment_location(prev_appointment)
       next_loc = appointment_location(next_appointment)

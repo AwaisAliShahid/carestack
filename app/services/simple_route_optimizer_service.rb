@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 class SimpleRouteOptimizerService
-  def initialize(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: [], optimization_job: nil)
+  def initialize(account_id:, date:, optimization_type: "minimize_travel_time", algorithm: "nearest_neighbor", staff_ids: [], optimization_job: nil)
     @account = Account.find(account_id)
     @date = date
     @optimization_type = optimization_type
+    @algorithm = algorithm
     @staff_ids = staff_ids.map(&:to_i) # Convert to integers for comparison
     @existing_job = optimization_job # Use existing job if provided (for async processing)
     @appointments = load_appointments
@@ -48,8 +49,12 @@ class SimpleRouteOptimizerService
       # Get distance matrix
       distance_matrix = @maps_service.distance_matrix(locations)
 
-      # Create optimized routes using simple nearest neighbor algorithm
-      optimized_routes = create_optimized_routes(distance_matrix)
+      # Create optimized routes using selected algorithm
+      optimized_routes = if @algorithm == "genetic"
+        create_genetic_routes(distance_matrix)
+      else
+        create_optimized_routes(distance_matrix)
+      end
 
       # Save routes to database
       saved_routes = save_routes_to_database(optimized_routes, job)
@@ -132,6 +137,49 @@ class SimpleRouteOptimizerService
     end
 
     locations
+  end
+
+  def create_genetic_routes(distance_matrix)
+    objective = case @optimization_type
+    when "minimize_travel_time" then :minimize_time
+    when "minimize_total_cost" then :minimize_distance
+    when "balance_workload" then :balance_workload
+    else :minimize_time
+    end
+
+    solver = GeneticVrpSolver.new(
+      distance_matrix: distance_matrix,
+      appointments: @appointments,
+      staff_members: @staff_members,
+      objective: objective,
+      max_iterations: 500,
+      population_size: 30
+    )
+
+    ga_routes = solver.solve
+
+    # Convert GA output to the format expected by save_routes_to_database
+    ga_routes.map do |route|
+      current_time = @date.beginning_of_day + 8.hours
+      stop_data = route[:appointments].map do |appointment|
+        service_duration = appointment.service_type.duration_minutes * 60
+        arrival = current_time
+        departure = current_time + service_duration.seconds
+        current_time = departure
+
+        { appointment: appointment, estimated_arrival: arrival, estimated_departure: departure,
+          travel_distance: 0, travel_time: 0 }
+      end
+
+      {
+        staff: route[:staff],
+        appointments: stop_data,
+        total_distance_meters: route[:total_distance_meters].to_i,
+        total_duration_seconds: route[:total_duration_seconds].to_i,
+        start_time: @date.beginning_of_day + 8.hours,
+        end_time: current_time
+      }
+    end
   end
 
   def create_optimized_routes(distance_matrix)
@@ -229,6 +277,7 @@ class SimpleRouteOptimizerService
     optimized_routes.each do |route_data|
       route = Route.create!(
         account: @account,
+        staff: route_data[:staff],
         optimization_job: optimization_job,
         scheduled_date: @date,
         status: "optimized",

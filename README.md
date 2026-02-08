@@ -5,10 +5,11 @@ A multi-vertical service management platform built with Ruby on Rails 8, designe
 ## Features
 
 - **Multi-Vertical Support**: Configurable for different service industries with vertical-specific compliance requirements
-- **Route Optimization**: Intelligent scheduling using nearest-neighbor algorithm with optional Google Maps Distance Matrix API integration
-- **GraphQL API**: Modern API layer for flexible client integrations
-- **Appointment Management**: Full lifecycle management for service appointments
+- **Route Optimization**: Nearest-neighbor heuristic and genetic algorithm (VRP solver) for intelligent scheduling
+- **GraphQL API**: Modern API layer with authentication, authorization, and dataloader for N+1 prevention
+- **Appointment Management**: Full lifecycle management with vertical-specific business rules
 - **Staff Management**: Track staff availability, skills, certifications, and home locations
+- **Background Jobs**: Async route optimization via Sidekiq
 
 ## Tech Stack
 
@@ -17,26 +18,33 @@ A multi-vertical service management platform built with Ruby on Rails 8, designe
 - **Database**: PostgreSQL
 - **API**: GraphQL (graphql-ruby 2.0)
 - **Background Jobs**: Sidekiq 7.0
-- **Testing**: RSpec with FactoryBot
+- **Authentication**: Devise + JWT
+- **Testing**: RSpec with FactoryBot (499 tests, 85%+ coverage)
 
 ## Architecture
 
 ```
 app/
-├── graphql/           # GraphQL schema, types, and mutations
-│   ├── mutations/     # CreateAppointment, OptimizeRoutes, etc.
+├── graphql/
+│   ├── concerns/      # Authorize module (auth layer)
+│   ├── mutations/     # CreateAppointment, OptimizeRoutes
+│   ├── sources/       # GraphQL Dataloader sources (N+1 prevention)
 │   └── types/         # GraphQL type definitions
-├── models/            # ActiveRecord models
+├── models/
 │   ├── account.rb     # Multi-tenant account model
 │   ├── appointment.rb # Core appointment scheduling
 │   ├── customer.rb    # Customer management
 │   ├── route.rb       # Optimized route storage
 │   ├── staff.rb       # Staff/technician management
+│   ├── user.rb        # Authentication (Devise + JWT)
 │   └── vertical.rb    # Industry vertical configuration
-└── services/          # Business logic services
-    ├── google_maps_service.rb          # Real Google Maps API integration
-    ├── mock_google_maps_service.rb     # Mock for development/testing
-    └── simple_route_optimizer_service.rb  # Route optimization logic
+├── jobs/
+│   └── route_optimization_job.rb  # Async optimization via Sidekiq
+└── services/
+    ├── genetic_vrp_solver.rb          # Genetic algorithm VRP solver
+    ├── google_maps_service.rb         # Real Google Maps API integration
+    ├── mock_google_maps_service.rb    # Mock for development/testing
+    └── simple_route_optimizer_service.rb  # Route optimization orchestrator
 ```
 
 ## Getting Started
@@ -50,60 +58,25 @@ app/
 ### Installation
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd carestack
 
-# Install dependencies
 bundle install
-
-# Setup environment
-cp .env.sample .env
-# Edit .env with your configuration
-
-# Setup database
-rails db:create db:migrate
-
-# Run tests
+rails db:create db:migrate db:seed
 bundle exec rspec
 ```
 
-### Environment Variables
+### Demo Credentials
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `REDIS_URL` | Redis connection for Sidekiq | Yes |
-| `GOOGLE_MAPS_API_KEY` | Google Maps API key for route optimization | No* |
-| `STRIPE_API_KEY` | Stripe API key for payments | No |
-| `ROLLBAR_ACCESS_TOKEN` | Error tracking | No |
+After running `db:seed`:
 
-*Without a Google Maps API key, the system uses a mock service with realistic Edmonton-area coordinates for development.
+| Email | Role | Account |
+|-------|------|---------|
+| `admin@carestack.demo` | Super Admin | All accounts |
+| `manager@cleaning.demo` | Manager | Sparkle Clean Edmonton |
+| `manager@elderly_care.demo` | Manager | Golden Years Home Care |
 
-### Google Maps API Setup
-
-For production route optimization:
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Create a new API key
-3. Enable the following APIs:
-   - Geocoding API
-   - Distance Matrix API
-   - Directions API
-4. Add the key to your environment: `GOOGLE_MAPS_API_KEY=your_key_here`
-
-## Testing
-
-```bash
-# Run all tests
-bundle exec rspec
-
-# Run with coverage report
-COVERAGE=true bundle exec rspec
-
-# Run specific test file
-bundle exec rspec spec/services/simple_route_optimizer_service_spec.rb
-```
+Password: `password123`
 
 ## API Usage
 
@@ -114,15 +87,14 @@ bundle exec rspec spec/services/simple_route_optimizer_service_spec.rb
 ### Example: Create Appointment
 
 ```graphql
-mutation CreateAppointment {
-  createAppointment(
+mutation {
+  createAppointment(input: {
     accountId: "1"
     customerId: "1"
     serviceTypeId: "1"
     staffId: "1"
-    scheduledAt: "2025-01-15T09:00:00Z"
-    duration: 60
-  ) {
+    scheduledAt: "2026-01-15T09:00:00Z"
+  }) {
     appointment {
       id
       status
@@ -133,24 +105,46 @@ mutation CreateAppointment {
 }
 ```
 
-### Example: Optimize Routes
+### Example: Optimize Routes (Nearest Neighbor)
 
 ```graphql
-mutation OptimizeRoutes {
-  optimizeRoutes(
+mutation {
+  optimizeRoutes(input: {
     accountId: "1"
-    date: "2025-01-15"
-    optimizationType: "minimize_travel_time"
-  ) {
+    date: "2026-01-15"
+  }) {
     routes {
       id
-      totalDistanceMeters
-      totalDurationSeconds
+      totalDistanceKm
+      totalDurationHours
     }
     estimatedSavings {
       timeSavedHours
       costSavings
-      efficiencyImprovementPercent
+    }
+    errors
+  }
+}
+```
+
+### Example: Optimize Routes (Genetic Algorithm)
+
+```graphql
+mutation {
+  optimizeRoutes(input: {
+    accountId: "1"
+    date: "2026-01-15"
+    algorithm: "genetic"
+    optimizationType: "balance_workload"
+  }) {
+    routes {
+      id
+      totalDistanceKm
+      totalDurationHours
+      routeStops {
+        stopOrder
+        appointment { customer { firstName lastName } }
+      }
     }
     errors
   }
@@ -159,22 +153,25 @@ mutation OptimizeRoutes {
 
 ## Route Optimization
 
-The system supports multiple optimization strategies:
+### Algorithms
+
+- **Nearest Neighbor** (`nearest_neighbor`) - Fast greedy heuristic. Good for small datasets.
+- **Genetic Algorithm** (`genetic`) - Population-based VRP solver with crossover, mutation, and 2-opt local search. Redistributes appointments across staff for globally optimal routes.
+
+### Optimization Types
 
 - `minimize_travel_time` - Reduce total driving time (default)
 - `minimize_total_cost` - Optimize for fuel and labor costs
 - `balance_workload` - Distribute appointments evenly across staff
 - `maximize_revenue` - Prioritize high-value appointments
 
-### Algorithm
+## Testing
 
-Currently implements a **nearest-neighbor heuristic**:
-1. Start from each staff member's home location
-2. Visit the closest unvisited appointment
-3. Repeat until all appointments are scheduled
-4. Return to home location
-
-A genetic algorithm solver (`GeneticVrpSolver`) is available for more advanced optimization.
+```bash
+bundle exec rspec                    # Run all tests
+bundle exec rubocop                  # Lint
+bundle exec brakeman -q              # Security scan
+```
 
 ## License
 

@@ -335,6 +335,34 @@ appointments_created = 0
 end
 
 # ==============================================================================
+# USERS - Demo users for authentication
+# ==============================================================================
+puts "\n[7/7] Creating Demo Users..."
+
+# Super admin (no account - can see everything)
+admin = User.find_or_create_by!(email: "admin@carestack.demo") do |u|
+  u.first_name = "Admin"
+  u.last_name = "User"
+  u.password = "password123"
+  u.password_confirmation = "password123"
+  u.role = "admin"
+end
+puts "  - #{admin.full_name} (#{admin.role}) - #{admin.email}"
+
+# Account managers - one per vertical
+accounts.each do |vertical_slug, account|
+  manager = User.find_or_create_by!(email: "manager@#{vertical_slug}.demo") do |u|
+    u.first_name = account.name.split.first
+    u.last_name = "Manager"
+    u.password = "password123"
+    u.password_confirmation = "password123"
+    u.role = "manager"
+    u.account = account
+  end
+  puts "  - #{manager.full_name} (#{manager.role}) - #{manager.email} -> #{account.name}"
+end
+
+# ==============================================================================
 # SUMMARY
 # ==============================================================================
 puts "\n" + "=" * 60
@@ -347,6 +375,12 @@ puts "  - #{Account.count} accounts"
 puts "  - #{Staff.count} staff members"
 puts "  - #{Customer.count} customers"
 puts "  - #{Appointment.count} appointments"
+puts "  - #{User.count} users"
+
+puts "\nDemo Login Credentials (password: password123):"
+puts "  - admin@carestack.demo (super admin - sees all accounts)"
+puts "  - manager@cleaning.demo (Sparkle Clean Edmonton)"
+puts "  - manager@elderly_care.demo (Golden Years Home Care)"
 
 puts "\nDemo Accounts for Testing:"
 accounts.each do |vertical, account|
@@ -365,6 +399,7 @@ puts '  mutation {'
 puts '    optimizeRoutes(input: {'
 puts "      accountId: #{accounts[:cleaning].id}"
 puts '      date: "' + today.to_s + '"'
+puts '      algorithm: "genetic"'
 puts '    }) {'
 puts '      optimizationJob { id status }'
 puts '      routes { id totalDistanceMeters totalDurationSeconds }'

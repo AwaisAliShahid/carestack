@@ -7,6 +7,8 @@ module Mutations
     argument :account_id, ID, required: true
     argument :date, GraphQL::Types::ISO8601Date, required: true
     argument :optimization_type, String, required: false, default_value: "minimize_travel_time"
+    argument :algorithm, String, required: false, default_value: "nearest_neighbor",
+             description: "Algorithm to use: 'nearest_neighbor' (fast) or 'genetic' (better routes, slower)"
     argument :staff_ids, [ ID ], required: false
     argument :force_reoptimization, Boolean, required: false, default_value: false
     argument :async, Boolean, required: false, default_value: false,
@@ -17,7 +19,7 @@ module Mutations
     field :estimated_savings, Types::OptimizationSavingsType, null: true
     field :errors, [ String ], null: false
 
-    def resolve(account_id:, date:, optimization_type: "minimize_travel_time", staff_ids: nil, force_reoptimization: false, async: false)
+    def resolve(account_id:, date:, optimization_type: "minimize_travel_time", algorithm: "nearest_neighbor", staff_ids: nil, force_reoptimization: false, async: false)
       begin
         # Authorize access to the account
         account = authorize_account_access!(account_id)
@@ -71,9 +73,20 @@ module Mutations
           }
         end
 
+        # Validate algorithm
+        valid_algorithms = %w[nearest_neighbor genetic]
+        unless valid_algorithms.include?(algorithm)
+          return {
+            optimization_job: nil,
+            routes: [],
+            estimated_savings: nil,
+            errors: [ "Invalid algorithm. Must be one of: #{valid_algorithms.join(', ')}" ]
+          }
+        end
+
         # Async mode: queue job and return immediately
         if async
-          return run_async_optimization(account, date, optimization_type, staff_ids)
+          return run_async_optimization(account, date, optimization_type, algorithm, staff_ids)
         end
 
         # Sync mode: run optimization and wait for result
@@ -81,6 +94,7 @@ module Mutations
           account_id: account.id,
           date: date,
           optimization_type: optimization_type,
+          algorithm: algorithm,
           staff_ids: staff_ids || []
         )
 
@@ -150,7 +164,7 @@ module Mutations
       )
     end
 
-    def run_async_optimization(account, date, optimization_type, staff_ids)
+    def run_async_optimization(account, date, optimization_type, algorithm, staff_ids)
       # Create a pending optimization job
       job = OptimizationJob.create!(
         account: account,
@@ -158,6 +172,7 @@ module Mutations
         status: "pending",
         parameters: {
           optimization_type: optimization_type,
+          algorithm: algorithm,
           staff_ids: staff_ids || []
         }
       )

@@ -21,6 +21,7 @@ class RouteOptimizationJob < ApplicationJob
         account_id: optimization_job.account_id,
         date: optimization_job.requested_date,
         optimization_type: optimization_job.parameters["optimization_type"] || "minimize_travel_time",
+        algorithm: optimization_job.parameters["algorithm"] || "nearest_neighbor",
         staff_ids: optimization_job.parameters["staff_ids"] || [],
         optimization_job: optimization_job
       )

@@ -43,7 +43,7 @@ class Account < ApplicationRecord
   def completed_appointments_this_month
     appointments.where(
       status: "completed",
-      scheduled_at: 1.month.ago.beginning_of_month..Time.current
+      scheduled_at: Time.current.beginning_of_month..Time.current
     )
   end
 

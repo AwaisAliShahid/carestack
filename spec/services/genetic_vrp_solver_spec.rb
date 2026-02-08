@@ -136,13 +136,16 @@ RSpec.describe GeneticVrpSolver do
         expect(routes).not_to be_empty
       end
 
-      it "assigns appointments to correct staff" do
+      it "assigns all appointments across staff" do
         routes = solver.solve
 
+        # All appointments should be assigned somewhere
+        assigned_ids = routes.flat_map { |r| r[:appointments].map(&:id) }.sort
+        expect(assigned_ids).to eq(appointments.map(&:id).sort)
+
+        # Each route's staff should be from our staff list
         routes.each do |route|
-          route[:appointments].each do |appointment|
-            expect(appointment.staff_id).to eq(route[:staff].id)
-          end
+          expect(staff_members).to include(route[:staff])
         end
       end
 
@@ -407,14 +410,18 @@ RSpec.describe GeneticVrpSolver do
     end
 
     describe "#can_assign_appointment?" do
-      it "returns true when appointment belongs to staff" do
-        result = solver.send(:can_assign_appointment?, staff1.id, appointment1)
-
-        expect(result).to be true
+      it "returns true for any staff in the same account" do
+        # Staff1 and appointment1 are in the same account
+        expect(solver.send(:can_assign_appointment?, staff1.id, appointment1)).to be true
+        # Staff2 is also in the same account - GA can reassign across staff
+        expect(solver.send(:can_assign_appointment?, staff2.id, appointment1)).to be true
       end
 
-      it "returns false when appointment belongs to different staff" do
-        result = solver.send(:can_assign_appointment?, staff2.id, appointment1)
+      it "returns false for staff not in the solver's staff list" do
+        other_account = create(:account, vertical: vertical)
+        other_staff = create(:staff, :downtown_based, account: other_account)
+
+        result = solver.send(:can_assign_appointment?, other_staff.id, appointment1)
 
         expect(result).to be false
       end

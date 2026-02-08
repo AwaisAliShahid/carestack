@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_19_210628) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_08_185708) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -58,22 +58,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_19_210628) do
     t.index ["account_id"], name: "index_customers_on_account_id"
   end
 
-  create_table "flipper_features", force: :cascade do |t|
-    t.string "key", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["key"], name: "index_flipper_features_on_key", unique: true
-  end
-
-  create_table "flipper_gates", force: :cascade do |t|
-    t.string "feature_key", null: false
-    t.string "key", null: false
-    t.text "value"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
-  end
-
   create_table "optimization_jobs", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.date "requested_date"
@@ -111,9 +95,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_19_210628) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "optimization_job_id"
+    t.bigint "staff_id"
     t.index ["account_id", "scheduled_date", "status"], name: "index_routes_on_account_date_status"
     t.index ["account_id"], name: "index_routes_on_account_id"
     t.index ["optimization_job_id"], name: "index_routes_on_optimization_job_id"
+    t.index ["staff_id"], name: "index_routes_on_staff_id"
   end
 
   create_table "service_types", force: :cascade do |t|
@@ -197,6 +183,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_19_210628) do
   add_foreign_key "route_stops", "routes"
   add_foreign_key "routes", "accounts"
   add_foreign_key "routes", "optimization_jobs"
+  add_foreign_key "routes", "staffs"
   add_foreign_key "service_types", "verticals"
   add_foreign_key "staffs", "accounts"
   add_foreign_key "travel_segments", "appointments", column: "from_appointment_id"
