@@ -13,7 +13,7 @@ A multi-vertical service management platform built with Ruby on Rails 8, designe
 
 ## Tech Stack
 
-- **Ruby**: 3.2.0
+- **Ruby**: 3.3.0
 - **Rails**: 8.0.0
 - **Database**: PostgreSQL
 - **API**: GraphQL (graphql-ruby 2.0)

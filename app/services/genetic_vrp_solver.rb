@@ -204,9 +204,10 @@ class GeneticVrpSolver
       route2 = parent2[staff_index][:appointments]
 
       if route1.any? && route2.any?
-        # Swap segments between routes
-        point1 = rand(route1.length)
-        point2 = rand(route1.length)
+        # Swap segments between routes (use min length to avoid out-of-bounds)
+        min_length = [route1.length, route2.length].min
+        point1 = rand(min_length)
+        point2 = rand(min_length)
         point1, point2 = point2, point1 if point1 > point2
 
         segment1 = route1[point1..point2]
