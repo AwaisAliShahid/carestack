@@ -205,7 +205,7 @@ class GeneticVrpSolver
 
       if route1.any? && route2.any?
         # Swap segments between routes (use min length to avoid out-of-bounds)
-        min_length = [route1.length, route2.length].min
+        min_length = [ route1.length, route2.length ].min
         point1 = rand(min_length)
         point2 = rand(min_length)
         point1, point2 = point2, point1 if point1 > point2
